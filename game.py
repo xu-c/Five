@@ -1,7 +1,6 @@
-"""Board rules and offline opponent."""
+"""Gomoku and Renju board rules."""
 
 from dataclasses import dataclass
-from random import choice
 
 BLACK, WHITE = 1, 2
 AXES = ((1, 0), (0, 1), (1, 1), (1, -1))
@@ -128,77 +127,3 @@ class Game:
         for _ in range(min(count, len(self.history))):
             del self.board[self.history.pop()]
         self.result = Move()
-
-    def candidates(self):
-        if not self.board:
-            return [(self.size // 2, self.size // 2)]
-        nearby = {
-            (x + dx, y + dy)
-            for x, y in self.board
-            for dx in range(-2, 3)
-            for dy in range(-2, 3)
-            if self.empty((x + dx, y + dy))
-        }
-        return sorted(nearby)
-
-
-def potential(game, point, color):
-    game.board[point] = color
-    try:
-        score = 0
-        for axis in AXES:
-            line = game.line(point, axis, color)
-            openings = (game.empty(offset(line[0], axis, -1))
-                        + game.empty(offset(line[-1], axis, 1)))
-            if openings:
-                score += (0, 2, 12, 75, 700, 4000)[min(len(line), 5)] * openings ** 2
-        return score
-    finally:
-        del game.board[point]
-
-
-def choose_move(game, level):
-    color = game.turn
-    other = BLACK + WHITE - color
-    moves = []
-    for point in game.candidates():
-        own = game.inspect(point, color)
-        if own.foul:
-            continue
-        if own.winner:
-            return point
-        threat = game.inspect(point, other)
-        score = 8000 if threat.winner else 0
-        score += potential(game, point, color)
-        if not threat.foul:
-            score += potential(game, point, other)
-        moves.append((score, point))
-    if not moves:
-        for x in range(game.size):
-            for y in range(game.size):
-                point = (x, y)
-                if game.empty(point) and not game.inspect(point, color).foul:
-                    return point
-        return next(iter(game.candidates()), None)
-    moves.sort(reverse=True)
-    if level == "easy" and moves[0][0] < 8000:
-        return choice(moves[:5])[1]
-    if level != "hard":
-        return moves[0][1]
-    return max(moves[:8], key=lambda move: hard_score(game, color, other, *move))[1]
-
-
-def hard_score(game, color, other, score, point):
-    game.board[point] = color
-    try:
-        threats = 0
-        reply = 0
-        for target in game.candidates():
-            if game.inspect(target, other).winner:
-                return -100000 + score
-            if game.inspect(target, color).winner:
-                threats += 1
-            reply = max(reply, potential(game, target, other))
-        return score + 11000 * threats - reply
-    finally:
-        del game.board[point]

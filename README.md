@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.0.0-5_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.0.0-6_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.0.0-5_arm64.deb
+sudo apt install ./five_1.0.0-6_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -18,11 +18,11 @@ sudo apt install ./five_1.0.0-5_arm64.deb
 
 **简体中文**
 
-在 Cardputer Zero 上下五子棋。和电脑对弈，可选简单、普通、困难三档，也可以和朋友用同一台设备轮流落子。棋盘可选 15×15 或 13×13，规则可选自由、连珠禁手或自定义禁手。两种模式均支持悔棋，退出后可继续最近一盘未完成的对局。界面支持简体中文和英文。
+在 Cardputer Zero 上下五子棋。和 Rapfi 对弈，可选简单、普通、困难三档，也可以和朋友用同一台设备轮流落子。棋盘可选 15×15 或 13×13，规则可选自由或连珠禁手。两种对局均支持悔棋和续局，界面支持简体中文和英文。
 
 **English**
 
-Play Gomoku offline on Cardputer Zero. Face the computer at one of three difficulty levels or take turns with a friend on the same device. Choose a 15×15 or 13×13 board and play with freestyle, Renju fouls, or custom foul settings. Both modes support undo, and you can resume your most recent unfinished game. The interface is available in Simplified Chinese and English.
+Play Gomoku offline on Cardputer Zero. Face Rapfi at one of three difficulty levels or take turns with a friend on the same device. Choose a 15×15 or 13×13 board and play with freestyle or Renju fouls. Both modes support undo and resume. The interface is available in Simplified Chinese and English.
 
 ## 按键
 
@@ -41,8 +41,10 @@ Play Gomoku offline on Cardputer Zero. Face the computer at one of three difficu
 
 - 棋盘默认 15×15，可改为 13×13。棋盘和规则设置在新局生效。
 - 人机执棋颜色在新局生效。选执白时由电脑执黑先手，悔棋最早可退到电脑的第一手之后。
+- 简单、普通、困难使用 Rapfi 的棋力参数 25、65、100，并分别限制搜索时间和深度。
 - 默认自由规则，黑白都无禁手，五连及以上获胜。
-- 连珠禁手预设启用黑棋的三三、四四、长连禁手。触犯禁手判白胜。自定义模式可以分别开关三项。连珠预设应用禁手判定，开局仍为黑白轮流落子。
+- 连珠禁手中，黑棋恰好五连获胜，白棋五连或更长即胜。黑棋三三、四四或长连判白胜，同一步恰好五连时优先判黑胜。开局黑白轮流落子。可在设置中打开「规则说明」。
+- 旧版仅启用部分禁手的人机棋局可以按原规则以同机双人方式续下。
 - 界面支持简体中文和英文，默认简体中文。
 - 落子音效默认开启，可在设置中关闭。人机和双人对局共用这一设置。
 
@@ -53,14 +55,17 @@ Play Gomoku offline on Cardputer Zero. Face the computer at one of three difficu
 ```sh
 python -m pip install "Pillow>=9.2"
 python five.py
+pwsh -File build_rapfi.ps1
 python build_package.py
 ```
 
 ## 代码来源与许可证
 
-当前安装包使用内置 AI。屏幕适配代码和 Debian 打包脚本沿用了 WebRadio 的部分实现。Pillow、python-evdev 和 Noto CJK 字体通过系统软件包安装。Five 自有代码的发布许可证待确定。
+Windows 上的 ARM64 打包使用 `build_rapfi.ps1`。桌面预览的人机模式可通过 `FIVE_RAPFI` 指定适合本机的 Rapfi 可执行文件，模型和配置放在该文件旁。
 
-Rapfi 是候选引擎。若随安装包分发，需保留引擎及随附组件的版权和许可证声明，并在二进制下载处明确提供该版本的完整对应源码、实际使用的补丁及构建和安装脚本。Rapfi 引擎采用 GPLv3，官方模型权重采用 CC0-1.0。发布时应记录引擎和权重的版本。Five 若计划与 Rapfi 一同开源，建议自有代码采用 GPL-3.0-or-later，并确认沿用代码的授权。
+Five 用标准 Gomocup 文本协议与独立的 Rapfi 进程通信。Rapfi 引擎按 GPL-3.0-or-later 分发，官方经典模型权重采用 CC0-1.0。安装包的 `/usr/share/doc/five/` 包含许可证文本、精确对应的 Rapfi 源码和构建脚本。引擎提交为 `1387d11312190ec66665d361ff07a7c70221b78a`，权重提交为 `7eeb19b55219a48138756293f92211a1539bab4d`。
+
+Five 自有代码的发布许可证待确定。若采用 Proprietary，其条款应明确仅适用于 Five 自有部分，Rapfi 和模型权重继续按各自许可证分发。屏幕适配代码和 Debian 打包脚本沿用了 WebRadio 的部分实现。Pillow、python-evdev 和 Noto CJK 字体通过系统软件包安装。
 
 - [Rapfi 引擎许可证](https://github.com/dotb1ue/rapfi/blob/master/Copying.txt)
 - [Rapfi 官方权重](https://github.com/dotb1ue/rapfi-networks)

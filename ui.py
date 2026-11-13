@@ -26,6 +26,8 @@ LABELS = {
     "three": ("三三", "Double three"), "four": ("四四", "Double four"),
     "overline": ("长连", "Overline"), "on": ("开", "On"), "off": ("关", "Off"),
     "sound": ("落子音效", "Move sound"),
+    "rules_help": ("规则说明", "Rules guide"),
+    "legacy_local": ("旧自定义棋局可用双人模式续下", "Resume old custom game in two-player mode"),
     "player_color": ("人机执棋", "Play as"),
     "play_black": ("执黑", "Black"), "play_white": ("执白", "White"),
     "black_turn": ("黑棋落子", "Black to move"), "white_turn": ("白棋落子", "White to move"),
@@ -191,14 +193,41 @@ class Screen:
                 details = tr("move_number").format(len(game.history) + (not game.ended))
                 if not game.ended:
                     details += f"   {chr(65 + x)}{y + 1}"
-            text(177, 88, details, 11, MUTED)
-            text(177, 111, "↑↓←→  /  F X Z C", 11, MUTED)
+            if app.engine_failed:
+                error, retry = (("引擎故障", "Enter 重试") if lang == "zh"
+                                else ("Engine error", "Enter to retry"))
+                text(177, 88, error, 11, MUTED)
+                text(177, 106, retry, 11, TEXT)
+            else:
+                text(177, 88, details, 11, MUTED)
+                text(177, 111, "↑↓←→  /  F X Z C", 11, MUTED)
             text(177, 129, "Enter  " + tr("place") + "     U  " + tr("undo"), 11)
             if countdown is not None:
                 draw.rectangle((5, 139, 315, 164), fill=PANEL)
                 text(160, 151, exit_message, 12, ACCENT, "mm")
             else:
                 text(177, 147, "Esc  " + tr("menu"), 11)
+            return image
+
+        if app.page == "rules_help":
+            text(14, 7, tr("rules_help"), 18)
+            text(14, 32, tr("free"), 13, ACCENT)
+            text(14, 50, "黑白连成五颗或更多即胜。" if lang == "zh"
+                 else "Either side wins with five or more in a row.")
+            text(14, 73, tr("renju"), 13, ACCENT)
+            if lang == "zh":
+                lines = ("黑棋恰好五连获胜，白棋五连或更长即胜。",
+                         "黑棋三三、四四或长连，判白胜。恰好五连优先。",
+                         "人机和双人都可选这两套规则。")
+            else:
+                lines = ("Black wins with exactly five. White wins with five or more.",
+                         "Black loses on double three, double four or overline",
+                         "unless the move also makes exactly five.",
+                         "Both rules are available in either play mode.")
+            for y, line in zip((89, 104, 119, 134), lines):
+                text(14, y, line, 10 if lang == "en" else 12)
+            text(14, 151, exit_message if countdown is not None else "Esc / Enter  " + tr("back"),
+                 11, ACCENT if countdown is not None else MUTED)
             return image
 
         if app.page == "home":

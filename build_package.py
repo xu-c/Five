@@ -43,7 +43,7 @@ def main():
     launcher = "usr/share/APPLaunch"
     icon_path = f"{launcher}/share/images/five.png"
     control = """Package: five
-Version: 1.0.0-5
+Version: 1.0.0-6
 Section: games
 Priority: optional
 Architecture: arm64
@@ -66,14 +66,21 @@ Categories=Game;BoardGame;
     image = io.BytesIO()
     icon().save(image, format="PNG")
     payload = {f"{share}/{name}": ((root / name).read_bytes(), 0o644)
-               for name in ("five.py", "game.py", "ui.py", "device.py", "stone.wav")}
+               for name in ("five.py", "game.py", "ui.py", "device.py", "stone.wav", "rapfi_engine.py")}
+    engine = root / "dist" / "rapfi-arm64"
+    for name in ("rapfi", "config.toml", "model260809.bin"):
+        payload[f"{share}/{name}"] = ((engine / name).read_bytes(), 0o755 if name == "rapfi" else 0o644)
+    docs = "usr/share/doc/five"
+    for name in ("Rapfi-GPL.txt", "CC0.txt", "rapfi-source.tar.gz"):
+        payload[f"{docs}/{name}"] = ((engine / name).read_bytes(), 0o644)
     payload.update({
         "usr/bin/five": (entry.encode(), 0o755),
         f"{launcher}/applications/five.desktop": (desktop.encode("utf-8"), 0o644),
         icon_path: (image.getvalue(), 0o644),
-        "usr/share/doc/five/README.md": ((root / "README.md").read_bytes(), 0o644),
+        f"{docs}/README.md": ((root / "README.md").read_bytes(), 0o644),
+        f"{docs}/build_rapfi.ps1": ((root / "build_rapfi.ps1").read_bytes(), 0o644),
     })
-    output = root / "dist" / "five_1.0.0-5_arm64.deb"
+    output = root / "dist" / "five_1.0.0-6_arm64.deb"
     output.parent.mkdir(exist_ok=True)
     output.write_bytes(b"!<arch>\n" + b"".join((
         ar_member("debian-binary", b"2.0\n"),

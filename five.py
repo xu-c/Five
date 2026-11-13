@@ -12,10 +12,11 @@ import subprocess
 from tempfile import NamedTemporaryFile
 from time import monotonic
 
-from game import BLACK, WHITE, FOULS, Game, choose_move
+from game import BLACK, WHITE, FOULS, Game
+from rapfi_engine import pick_move
 
 SIZES = (15, 13)
-RULES = ("free", "renju", "custom")
+RULES = ("free", "renju")
 LEVELS = ("easy", "normal", "hard")
 LANGUAGES = ("zh", "en")
 COLORS = (BLACK, WHITE)
@@ -30,13 +31,12 @@ class Settings:
     rule: str = "free"
     level: str = "normal"
     language: str = "zh"
-    custom: tuple = ()
     sound: bool = True
     player_color: int = BLACK
 
     @property
     def bans(self):
-        return {"free": (), "renju": FOULS, "custom": self.custom}[self.rule]
+        return FOULS if self.rule == "renju" else ()
 
 
 class App:
@@ -58,6 +58,7 @@ class App:
         self.notice = ""
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.job = None
+        self.engine_failed = False
         self.sound_path = Path(__file__).with_name("stone.wav")
         self.aplay = which("aplay")
         self.sound_process = None
@@ -73,12 +74,13 @@ class App:
             return
         try:
             config = data["settings"]
-            settings = Settings(config["size"], config["rule"], config["level"],
-                                config["language"], tuple(config["custom"]),
+            rule = config["rule"]
+            if rule == "custom":
+                rule = "renju" if set(config.get("custom", ())) == set(FOULS) else "free"
+            settings = Settings(config["size"], rule, config["level"], config["language"],
                                 config.get("sound", True), config.get("player_color", BLACK))
             if (settings.size not in SIZES or settings.rule not in RULES
                     or settings.level not in LEVELS or settings.language not in LANGUAGES
-                    or any(ban not in FOULS for ban in settings.custom)
                     or type(settings.sound) is not bool
                     or type(settings.player_color) is not int or settings.player_color not in COLORS):
                 raise ValueError("Invalid settings")
@@ -99,6 +101,9 @@ class App:
                     raise ValueError("Invalid move")
             if game.ended:
                 raise ValueError("Completed game")
+            if mode == "cpu" and game.bans not in (frozenset(), frozenset(FOULS)):
+                mode = "local"
+                self.notice = "legacy_local"
             self.game, self.mode, self.level = game, mode, level
             self.player_color = player_color
             self.cursor = game.history[-1] if game.history else (size // 2,) * 2
@@ -137,10 +142,8 @@ class App:
                 ("player_color", "play_black" if self.settings.player_color == BLACK else "play_white"),
                 ("language", self.settings.language),
                 ("sound", "on" if self.settings.sound else "off"),
+                ("rules_help", ""),
             ]
-            if self.settings.rule == "custom":
-                rows[2:2] = [(ban, "on" if ban in self.settings.custom else "off")
-                             for ban in FOULS]
             return rows
         if self.page == "confirm":
             return [("cancel", ""), ("replace", "")]
@@ -152,6 +155,7 @@ class App:
     def open(self, page):
         self.page = page
         self.selected = 0
+        self.engine_failed = False
 
     def start(self, mode):
         self.game = Game(self.settings.size, self.settings.bans)
@@ -167,12 +171,9 @@ class App:
             "difficulty": ("level", LEVELS), "language": ("language", LANGUAGES),
             "player_color": ("player_color", COLORS),
             "sound": ("sound", (False, True)),
-        }.get(row, ("custom", ()))
-        if options:
-            index = options.index(getattr(self.settings, field))
-            value = options[(index + direction) % len(options)]
-        else:
-            value = tuple(sorted(set(self.settings.custom) ^ {row}))
+        }[row]
+        index = options.index(getattr(self.settings, field))
+        value = options[(index + direction) % len(options)]
         self.settings = replace(self.settings, **{field: value})
         self.save()
 
@@ -192,9 +193,15 @@ class App:
             return
         self.dirty = True
         self.notice = ""
+        if self.page == "rules_help":
+            if key == "enter":
+                self.open("settings")
+            return
         if self.page == "game":
             if key == "u":
                 self.undo()
+            elif key == "enter" and self.engine_failed:
+                self.engine_failed = False
             elif direction:
                 self.cursor = tuple(max(0, min(self.game.size - 1, value + step))
                                     for value, step in zip(self.cursor, direction))
@@ -211,7 +218,10 @@ class App:
             return
         action = rows[self.selected][0]
         if self.page == "settings":
-            if key == "enter" or direction:
+            if action == "rules_help":
+                if key == "enter":
+                    self.open("rules_help")
+            elif key == "enter" or direction:
                 self.update_setting(action, direction[0] if direction else 1)
             return
         if key != "enter":
@@ -241,7 +251,7 @@ class App:
         self.check_exit_hold()
         self.cancel_escape()
         if self.running and self.page != "home":
-            self.open("home")
+            self.open("settings" if self.page == "rules_help" else "home")
 
     def check_exit_hold(self):
         if self.escape_started is None:
@@ -267,6 +277,7 @@ class App:
             return
         self.cursor = self.game.history[-count]
         self.game.undo(count)
+        self.engine_failed = False
         self.save()
 
     def tick(self):
@@ -283,12 +294,15 @@ class App:
                     self.dirty = True
                     self.play_sound()
                     self.save()
-        if self.page == "game" and self.computer_turn and self.job is None:
+                else:
+                    self.engine_failed = True
+                    self.dirty = True
+        if self.page == "game" and self.computer_turn and self.job is None and not self.engine_failed:
             game = self.game
             snapshot = Game(game.size, game.bans)
             snapshot.board = game.board.copy()
             snapshot.history = game.history.copy()
-            self.job = (self.executor.submit(choose_move, snapshot, self.level),
+            self.job = (self.executor.submit(pick_move, snapshot, self.level),
                         game, tuple(game.history))
 
     def play_sound(self):
