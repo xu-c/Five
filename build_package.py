@@ -43,7 +43,7 @@ def main():
     launcher = "usr/share/APPLaunch"
     icon_path = f"{launcher}/share/images/five.png"
     control = """Package: five
-Version: 1.0.0-6
+Version: 1.0.0-7
 Section: games
 Priority: optional
 Architecture: arm64
@@ -80,7 +80,7 @@ Categories=Game;BoardGame;
         f"{docs}/README.md": ((root / "README.md").read_bytes(), 0o644),
         f"{docs}/build_rapfi.ps1": ((root / "build_rapfi.ps1").read_bytes(), 0o644),
     })
-    output = root / "dist" / "five_1.0.0-6_arm64.deb"
+    output = root / "dist" / "five_1.0.0-7_arm64.deb"
     output.parent.mkdir(exist_ok=True)
     output.write_bytes(b"!<arch>\n" + b"".join((
         ar_member("debian-binary", b"2.0\n"),

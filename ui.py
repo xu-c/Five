@@ -193,9 +193,9 @@ class Screen:
                 details = tr("move_number").format(len(game.history) + (not game.ended))
                 if not game.ended:
                     details += f"   {chr(65 + x)}{y + 1}"
-            if app.engine_failed:
-                error, retry = (("引擎故障", "Enter 重试") if lang == "zh"
-                                else ("Engine error", "Enter to retry"))
+            if app.engine_failures:
+                error, retry = (("引擎故障", "正在自动重试") if lang == "zh"
+                                else ("Engine error", "Retrying automatically"))
                 text(177, 88, error, 11, MUTED)
                 text(177, 106, retry, 11, TEXT)
             else:

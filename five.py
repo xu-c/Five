@@ -21,6 +21,7 @@ LEVELS = ("easy", "normal", "hard")
 LANGUAGES = ("zh", "en")
 COLORS = (BLACK, WHITE)
 EXIT_HOLD_SECONDS = 3
+ENGINE_RETRY_DELAYS = (0.5, 1, 2, 4)
 DIRECTIONS = {"up": (0, -1), "f": (0, -1), "down": (0, 1), "x": (0, 1),
               "left": (-1, 0), "z": (-1, 0), "right": (1, 0), "c": (1, 0)}
 
@@ -58,7 +59,7 @@ class App:
         self.notice = ""
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.job = None
-        self.engine_failed = False
+        self.reset_engine_retry()
         self.sound_path = Path(__file__).with_name("stone.wav")
         self.aplay = which("aplay")
         self.sound_process = None
@@ -155,7 +156,11 @@ class App:
     def open(self, page):
         self.page = page
         self.selected = 0
-        self.engine_failed = False
+        self.reset_engine_retry()
+
+    def reset_engine_retry(self):
+        self.engine_failures = 0
+        self.engine_retry_at = 0
 
     def start(self, mode):
         self.game = Game(self.settings.size, self.settings.bans)
@@ -200,8 +205,6 @@ class App:
         if self.page == "game":
             if key == "u":
                 self.undo()
-            elif key == "enter" and self.engine_failed:
-                self.engine_failed = False
             elif direction:
                 self.cursor = tuple(max(0, min(self.game.size - 1, value + step))
                                     for value, step in zip(self.cursor, direction))
@@ -277,7 +280,7 @@ class App:
             return
         self.cursor = self.game.history[-count]
         self.game.undo(count)
-        self.engine_failed = False
+        self.reset_engine_retry()
         self.save()
 
     def tick(self):
@@ -291,13 +294,17 @@ class App:
                     and self.computer_turn):
                 point = future.result()
                 if point is not None and game.play(point):
+                    self.reset_engine_retry()
                     self.dirty = True
                     self.play_sound()
                     self.save()
                 else:
-                    self.engine_failed = True
+                    delay = ENGINE_RETRY_DELAYS[self.engine_failures]
+                    self.engine_retry_at = monotonic() + delay
+                    self.engine_failures = min(self.engine_failures + 1, len(ENGINE_RETRY_DELAYS) - 1)
                     self.dirty = True
-        if self.page == "game" and self.computer_turn and self.job is None and not self.engine_failed:
+        if (self.page == "game" and self.computer_turn and self.job is None
+                and monotonic() >= self.engine_retry_at):
             game = self.game
             snapshot = Game(game.size, game.bans)
             snapshot.board = game.board.copy()

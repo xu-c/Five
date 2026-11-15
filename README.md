@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.0.0-6_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.0.0-7_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.0.0-6_arm64.deb
+sudo apt install ./five_1.0.0-7_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -18,11 +18,18 @@ sudo apt install ./five_1.0.0-6_arm64.deb
 
 **简体中文**
 
-在 Cardputer Zero 上下五子棋。和 Rapfi 对弈，可选简单、普通、困难三档，也可以和朋友用同一台设备轮流落子。棋盘可选 15×15 或 13×13，规则可选自由或连珠禁手。两种对局均支持悔棋和续局，界面支持简体中文和英文。
+在 Cardputer Zero 上离线下五子棋。和 Rapfi 对弈，可选简单、普通、困难三档，也可以和朋友用同一台设备轮流落子。棋盘可选 15×15 或 13×13，规则可选自由或连珠禁手。两种对局均支持悔棋和续局，界面和规则说明支持简体中文和英文。
 
 **English**
 
-Play Gomoku offline on Cardputer Zero. Face Rapfi at one of three difficulty levels or take turns with a friend on the same device. Choose a 15×15 or 13×13 board and play with freestyle or Renju fouls. Both modes support undo and resume. The interface is available in Simplified Chinese and English.
+Play Gomoku offline on Cardputer Zero. Face Rapfi at one of three difficulty levels or take turns with a friend on the same device. Choose a 15×15 or 13×13 board and play with freestyle or Renju fouls. Both modes support undo and resume. The interface and rules guide are available in Simplified Chinese and English.
+
+## 最近改动 / What's new
+
+**1.0.0-7**
+
+- Rapfi 落子失败后会自动重试。连续失败时，重试间隔从 0.5 秒逐步增加到 4 秒。重试期间仍可悔棋或返回菜单。
+- Five automatically retries when Rapfi fails to return a move. For repeated failures, the delay grows from 0.5 seconds to 4 seconds. You can still undo or return to the menu while Five retries.
 
 ## 按键
 
