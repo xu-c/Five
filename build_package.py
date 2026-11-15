@@ -43,16 +43,16 @@ def main():
     launcher = "usr/share/APPLaunch"
     icon_path = f"{launcher}/share/images/five.png"
     control = """Package: five
-Version: 1.0.0-7
+Version: 1.2.0-2
 Section: games
 Priority: optional
 Architecture: arm64
 Maintainer: xu-c <3174585+xu-c@users.noreply.github.com>
-Depends: python3 (>= 3.9), python3-pil (>= 9.2), python3-evdev, fonts-noto-cjk, alsa-utils
-Description: offline Gomoku for Cardputer Zero
- Play against the computer or share the device with a second player.
+Depends: python3 (>= 3.9), python3-pil (>= 9.2), python3-evdev, python3-aiortc, ca-certificates, fonts-noto-cjk, alsa-utils
+Description: Gomoku with LAN multiplayer for Cardputer Zero
+ Play against the computer, share one device, or play over your local network.
  .
- 适用于 Cardputer Zero 的离线五子棋，支持人机和同机双人对局。
+ 适用于 Cardputer Zero 的五子棋，支持人机、同机双人和局域网联机。
 """
     desktop = f"""[Desktop Entry]
 Type=Application
@@ -66,7 +66,8 @@ Categories=Game;BoardGame;
     image = io.BytesIO()
     icon().save(image, format="PNG")
     payload = {f"{share}/{name}": ((root / name).read_bytes(), 0o644)
-               for name in ("five.py", "game.py", "ui.py", "device.py", "stone.wav", "rapfi_engine.py")}
+               for name in ("five.py", "game.py", "ui.py", "device.py", "stone.wav", "rapfi_engine.py",
+                            "lan.py", "lan_session.py", "rtc_peer.py")}
     engine = root / "dist" / "rapfi-arm64"
     for name in ("rapfi", "config.toml", "model260809.bin"):
         payload[f"{share}/{name}"] = ((engine / name).read_bytes(), 0o755 if name == "rapfi" else 0o644)
@@ -80,7 +81,7 @@ Categories=Game;BoardGame;
         f"{docs}/README.md": ((root / "README.md").read_bytes(), 0o644),
         f"{docs}/build_rapfi.ps1": ((root / "build_rapfi.ps1").read_bytes(), 0o644),
     })
-    output = root / "dist" / "five_1.0.0-7_arm64.deb"
+    output = root / "dist" / "five_1.2.0-2_arm64.deb"
     output.parent.mkdir(exist_ok=True)
     output.write_bytes(b"!<arch>\n" + b"".join((
         ar_member("debian-binary", b"2.0\n"),

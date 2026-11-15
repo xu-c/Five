@@ -1,0 +1,44 @@
+:root {
+  color-scheme: dark;
+  font-family: "Noto Sans", "Microsoft YaHei", system-ui, sans-serif;
+  background: #141c20;
+  color: #faf4e9;
+  --panel: #243136;
+  --accent: #a7e7ca;
+  --muted: #b6c4c2;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; padding: clamp(12px, 4vw, 40px); }
+main { display: flex; align-items: flex-start; gap: 24px; width: min(100%, 850px); margin: 0 auto; }
+.board-panel { flex: 1 1 520px; min-width: 0; }
+canvas { display: block; width: 100%; height: auto; border-radius: 5px; cursor: crosshair; touch-action: manipulation; }
+.sidebar { flex: 0 1 300px; min-width: 240px; width: 100%; max-width: 380px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+h1 { margin: 0; font-size: 2rem; font-weight: 600; }
+p { line-height: 1.5; }
+#subtitle, #coordinates, .keys, details p { color: var(--muted); }
+#status { min-height: 44px; padding: 10px 12px; border: 1px solid #496561; border-radius: 6px; background: var(--panel); color: var(--accent); }
+#status::before { display: none; }
+#status[data-color]::before { content: ""; display: inline-block; width: 13px; height: 13px; margin-right: 8px; border: 1px solid #d6e7df; border-radius: 50%; }
+#status[data-color="1"]::before { background: #14191c; }
+#status[data-color="2"]::before { background: #fff9ee; }
+input, button, select { font: inherit; color: inherit; border: 1px solid #496561; border-radius: 5px; min-height: 39px; }
+input:not([type="checkbox"]), select { display: block; width: 100%; margin: 6px 0 12px; padding: 6px 10px; background: #192427; }
+.undo-choice { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+#room-menu { display: flex; gap: 8px; }
+button { background: var(--panel); padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .55; cursor: default; }
+button:focus-visible, input:focus-visible, canvas:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+details { margin-top: 22px; }
+summary { cursor: pointer; color: var(--accent); }
+a { color: var(--accent); }
+[hidden] { display: none !important; }
+@media (max-width: 650px) {
+  main { flex-direction: column; align-items: stretch; gap: 16px; }
+  .board-panel { flex-basis: auto; order: 1; }
+  .sidebar { flex-basis: auto; max-width: none; }
+  #playing .keys { display: none; }
+  .sidebar:has(#playing:not([hidden])) details { margin-top: 12px; }
+}

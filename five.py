@@ -13,7 +13,9 @@ from tempfile import NamedTemporaryFile
 from time import monotonic
 
 from game import BLACK, WHITE, FOULS, Game
+from lan_session import LanSession
 from rapfi_engine import pick_move
+from rtc_peer import RtcPeer
 
 SIZES = (15, 13)
 RULES = ("free", "renju")
@@ -52,6 +54,12 @@ class App:
         self.page = "home"
         self.selected = 0
         self.pending = None
+        self.lan = None
+        self.room_host_first = True
+        self.room_rule = "free"
+        self.room_undo = False
+        self.room_size = self.settings.size
+        self.room_code = ""
         self.running = True
         self.escape_started = None
         self.exit_countdown = None
@@ -148,7 +156,16 @@ class App:
             return rows
         if self.page == "confirm":
             return [("cancel", ""), ("replace", "")]
-        rows = [("cpu", ""), ("local", ""), ("settings", "")]
+        if self.page == "lan":
+            if self.lan is not None:
+                return [("lan_resume", ""), ("lan_leave", ""), ("lan_help", "")]
+            return [("lan_host", ""), ("lan_join", ""), ("lan_help", "")]
+        if self.page == "lan_setup":
+            return [("lan_first", "lan_host_side" if self.room_host_first else "lan_guest_side"),
+                    ("rules", self.room_rule), ("size", self.room_size),
+                    ("undo", "on" if self.room_undo else "off"),
+                    ("lan_host", "")]
+        rows = [("cpu", ""), ("local", ""), ("lan", ""), ("settings", "")]
         if self.game and not self.game.ended:
             rows.insert(0, ("resume", ""))
         return rows
@@ -202,11 +219,18 @@ class App:
             if key == "enter":
                 self.open("settings")
             return
+        if self.page == "lan_help":
+            if key == "enter":
+                self.open("lan")
+            return
+        if self.page in ("lan_input", "lan_game"):
+            self.handle_lan(key, direction)
+            return
         if self.page == "game":
             if key == "u":
                 self.undo()
             elif direction:
-                self.cursor = tuple(max(0, min(self.game.size - 1, value + step))
+                self.cursor = tuple((value + step) % self.game.size
                                     for value, step in zip(self.cursor, direction))
             elif key == "enter" and not self.computer_turn:
                 if self.game.play(self.cursor):
@@ -220,6 +244,19 @@ class App:
             self.selected = (self.selected + direction[1]) % len(rows)
             return
         action = rows[self.selected][0]
+        if self.page == "lan_setup":
+            if key == "enter" or direction:
+                if action == "lan_first":
+                    self.room_host_first = not self.room_host_first
+                elif action == "rules":
+                    self.room_rule = "renju" if self.room_rule == "free" else "free"
+                elif action == "size":
+                    self.room_size = 13 if self.room_size == 15 else 15
+                elif action == "undo":
+                    self.room_undo = not self.room_undo
+                elif key == "enter":
+                    self.start_lan()
+            return
         if self.page == "settings":
             if action == "rules_help":
                 if key == "enter":
@@ -237,10 +274,62 @@ class App:
                 self.start(action)
         elif action == "replace":
             self.start(self.pending)
+        elif action == "lan_host":
+            self.room_host_first, self.room_rule, self.room_undo = True, "free", False
+            self.room_size = self.settings.size
+            self.open("lan_setup")
+        elif action == "lan_help":
+            self.open("lan_help")
+        elif action == "lan_join":
+            self.room_code = ""
+            self.open("lan_input")
+        elif action == "lan_resume":
+            self.open("lan_game")
+        elif action == "lan_leave":
+            self.leave_lan()
+            self.open("lan")
+        elif action == "lan":
+            self.open("lan")
         elif action == "cancel":
             self.open("home")
         else:
             self.open("game" if action == "resume" else "settings")
+
+    def start_lan(self):
+        options = {"size": self.room_size, "renju": self.room_rule == "renju",
+                   "host_first": self.room_host_first, "undo": self.room_undo}
+        self.lan = LanSession(RtcPeer(options))
+        self.open("lan_game")
+
+    def handle_lan(self, key, direction):
+        if self.page == "lan_input":
+            if key == "backspace":
+                self.room_code = self.room_code[:-1]
+            elif len(key) == 1 and key in "0123456789" and len(self.room_code) < 10:
+                self.room_code += key
+            elif key == "enter":
+                if len(self.room_code) != 10:
+                    self.notice = "lan_code_hint"
+                    return
+                self.lan = LanSession(RtcPeer(), self.room_code)
+                self.open("lan_game")
+            return
+        session = self.lan
+        if session.closed and key == "enter":
+            self.leave_lan()
+            self.open("lan")
+        elif direction and session.game is not None:
+            self.lan_cursor = tuple((value + step) % session.game.size
+                                    for value, step in zip(self.lan_cursor, direction))
+        elif key == "enter":
+            session.move(self.lan_cursor if session.game else (0, 0))
+        elif key == "u":
+            session.undo()
+
+    def leave_lan(self):
+        if self.lan is not None:
+            self.lan.close()
+            self.lan = None
 
     def cancel_escape(self):
         if self.escape_started is not None:
@@ -254,7 +343,12 @@ class App:
         self.check_exit_hold()
         self.cancel_escape()
         if self.running and self.page != "home":
-            self.open("settings" if self.page == "rules_help" else "home")
+            if self.page in ("lan_game", "lan_input", "lan_setup", "lan_help"):
+                if self.lan is not None and self.lan.closed:
+                    self.leave_lan()
+                self.open("lan")
+            else:
+                self.open("settings" if self.page == "rules_help" else "home")
 
     def check_exit_hold(self):
         if self.escape_started is None:
@@ -287,6 +381,18 @@ class App:
         self.check_exit_hold()
         if not self.running:
             return
+        if self.lan is not None:
+            before = self.lan.game
+            if self.lan.tick():
+                current = self.lan.game
+                if before is None and current is not None:
+                    self.lan_cursor = (current.size // 2,) * 2
+                elif (before and current and len(before.history) > len(current.history)
+                      and current.turn == self.lan.color):
+                    self.lan_cursor = before.history[len(current.history)]
+                if self.page == "lan_game" and before and current and len(before.history) < len(current.history):
+                    self.play_sound()
+                self.dirty = True
         if self.job and self.job[0].done():
             future, game, moves = self.job
             self.job = None
@@ -334,6 +440,7 @@ class App:
             self.sound_process.wait()
 
     def close(self):
+        self.leave_lan()
         self.executor.shutdown(wait=False, cancel_futures=True)
         self.stop_sound()
 

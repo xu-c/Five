@@ -14,8 +14,38 @@ TITLE = "Five"
 BG, PANEL, TEXT = "#141c20", "#243136", "#faf4e9"
 MUTED, ACCENT = "#b6c4c2", "#a7e7ca"
 WOOD, GRID = "#d8af75", "#78542f"
+PREVIEW_MOVES = ((2, 6), (3, 6), (3, 5), (4, 5), (4, 4), (5, 4), (5, 3), (4, 3), (6, 2))
 
 LABELS = {
+    "lan": ("局域网联机", "LAN play"),
+    "lan_host": ("创建房间", "Host room"),
+    "lan_first": ("先手", "First move"),
+    "lan_host_side": ("房主", "Host"),
+    "lan_guest_side": ("加入方", "Guest"),
+    "lan_help": ("联机说明", "LAN guide"),
+    "cannot_undo": ("当前无法悔棋", "Cannot undo now"),
+    "lan_join": ("加入房间", "Join room"),
+    "lan_code_hint": ("请输入对手分享的 10 位房间码", "Enter the 10-digit code from your opponent"),
+    "pair_failed": ("配对失败，请重新加入", "Pairing failed. Try joining again."),
+    "pair_unavailable": ("配对服务暂不可用", "Pairing service unavailable"),
+    "pair_expired": ("房间码已过期，请重新创建", "Code expired. Create a new room."),
+    "rtc_missing": ("请安装 python3-aiortc", "Install python3-aiortc"),
+    "lan_resume": ("返回对局", "Return to match"),
+    "lan_leave": ("离开并结束房间", "Leave and close room"),
+    "lan_code": ("房间码", "Room code"),
+    "lan_wait": ("等待对手加入", "Waiting for opponent"),
+    "lan_connecting": ("正在加入房间…", "Joining room…"),
+    "lan_creating": ("正在创建房间…", "Creating room…"),
+    "lan_code_validity": ("配对码 5 分钟内有效", "Code valid for 5 minutes"),
+    "lan_reconnect": ("连接中断，正在重连", "Reconnecting…"),
+    "wrong_code": ("房间码错误", "Wrong room code"),
+    "room_full": ("房间已满", "Room is full"),
+    "try_later": ("房间码尝试过多，请稍后重试", "Too many attempts. Try again shortly."),
+    "room_closed": ("房间已结束", "Room closed"),
+    "connection_error": ("连接失败", "Connection failed"),
+    "not_turn": ("还不能落子", "Cannot play now"),
+    "stale_move": ("棋局已更新", "Board updated"),
+    "lan_back": ("Enter / Esc  返回", "Enter / Esc  Back"),
     "cpu": ("离线人机", "Play computer"), "local": ("同机双人", "Two players"),
     "resume": ("继续对局", "Resume game"), "settings": ("设置", "Settings"),
     "size": ("棋盘", "Board size"), "rules": ("规则", "Rules"),
@@ -111,15 +141,13 @@ def icon():
                           + 3 * sin(y * .55 + sin(x * .031)) + 6 - x / 32),)
     ])
     image.paste(wood, mask=mask)
-    for coordinate in range(35, 216, 30):
-        draw.line((coordinate, 32, coordinate, 212), fill="#825630", width=2)
-    for coordinate in range(32, 213, 30):
-        draw.line((35, coordinate, 215, coordinate), fill="#825630", width=2)
-    # Nine legal alternating moves, ending on Black's diagonal five.
-    moves = ((1, 1), (1, 3), (2, 2), (4, 2), (3, 3), (2, 5), (4, 4), (5, 3), (5, 5))
-    radius = 12
-    for index, (column, row) in enumerate(moves):
-        x, y = 35 + 30 * column, 32 + 30 * row
+    for coordinate in range(24, 233, 26):
+        draw.line((coordinate, 18, coordinate, 226), fill="#825630", width=2)
+    for coordinate in range(18, 227, 26):
+        draw.line((24, coordinate, 232, coordinate), fill="#825630", width=2)
+    radius = 11
+    for index, (column, row) in enumerate(PREVIEW_MOVES):
+        x, y = 24 + 26 * column, 18 + 26 * row
         draw.ellipse((x - radius + 2, y - radius + 4, x + radius + 2, y + radius + 4),
                      fill="#916039")
         base = (26, 25, 24) if index % 2 == 0 else (216, 211, 199)
@@ -160,18 +188,48 @@ class Screen:
         if countdown is not None:
             exit_message = tr("exit_countdown").format(countdown)
 
-        if app.page == "game":
-            game = app.game
+        if app.page == "lan_input":
+            text(14, 9, tr("lan_join"), 18)
+            text(14, 44, tr("lan_code_hint"), 12, ACCENT if app.notice else MUTED)
+            draw.rounded_rectangle((14, 68, 303, 101), 4, fill=PANEL)
+            text(22, 76, app.room_code + "_", 16, ACCENT)
+            text(14, 151, exit_message if countdown is not None else "Enter  " + tr("lan_join"), 11, MUTED)
+            return image
+
+        session = app.lan if app.page == "lan_game" else None
+        if session is not None and (session.closed or session.game is None or not session.ready):
+            status = session.error or ("lan_reconnect" if session.disconnected else "lan_wait" if session.game else
+                                       "lan_creating" if session.hosting else "lan_connecting")
+            text(14, 9, tr("lan"), 18)
+            text(14, 40, tr(status if status in LABELS else "connection_error"), 15, ACCENT)
+            if session.hosting and session.code and not session.closed:
+                text(14, 73, f"{tr('lan_code')}  {session.code}", 20, ACCENT)
+                text(14, 106, tr("lan_code_validity"), 11, MUTED)
+            text(14, 151, exit_message if countdown is not None else
+                 tr("lan_back") if session.closed else "Esc  " + tr("menu"), 11, MUTED)
+            return image
+
+        if app.page == "game" or session is not None:
+            game = session.game if session else app.game
+            cursor = app.lan_cursor if session else app.cursor
             last = game.history[-1] if game.history else None
             board(draw, (1, 1, 168, 168), game.size, game.board,
-                  None if game.ended else app.cursor, last, game.result.line,
+                  None if game.ended else cursor, last, game.result.line,
                   bool(game.result.foul), gameplay=True)
             text(177, 10, TITLE, 21)
-            text(177, 37, tr(app.mode) + "  ·  " + (
-                tr(app.level) if app.mode == "cpu" else tr(game.size)), 11, MUTED)
+            subtitle = (tr("lan") + "  ·  " + tr("play_black" if session.color == BLACK else "play_white")
+                        if session else tr(app.mode) + "  ·  " +
+                        (tr(app.level) if app.mode == "cpu" else tr(game.size)))
+            text(177, 37, subtitle, 11, MUTED)
             color = game.result.winner if game.ended else game.turn
             if game.ended:
                 status = {0: "draw", 1: "black_win", 2: "white_win"}[game.result.winner]
+            elif session and session.disconnected:
+                status = "lan_reconnect"
+            elif session and color == session.color:
+                status = "your_black" if color == BLACK else "your_white"
+            elif session:
+                status = "black_turn" if color == BLACK else "white_turn"
             elif app.computer_turn:
                 status = "cpu_black" if color == BLACK else "cpu_white"
             elif app.mode == "cpu":
@@ -182,18 +240,20 @@ class Screen:
             if color:
                 draw.ellipse((181, 63, 193, 75), fill="#14191c" if color == BLACK else "#fff9ee",
                              outline="#d6e7df")
-            status_size = 12 if lang == "en" and app.mode == "cpu" and not game.ended else 14
+            status_size = 12 if lang == "en" and (session or app.mode == "cpu") and not game.ended else 14
             text(200 if color else 182, 69, tr(status), status_size, ACCENT, "lm")
             if game.result.foul:
                 details = tr(game.result.foul) if lang == "en" else tr("foul") + " · " + tr(game.result.foul)
+            elif session and session.error:
+                details = tr(session.error if session.error in LABELS else "connection_error")
             elif app.notice:
                 details = tr(app.notice)
             else:
-                x, y = app.cursor
+                x, y = cursor
                 details = tr("move_number").format(len(game.history) + (not game.ended))
                 if not game.ended:
                     details += f"   {chr(65 + x)}{y + 1}"
-            if app.engine_failures:
+            if not session and app.engine_failures:
                 error, retry = (("引擎故障", "正在自动重试") if lang == "zh"
                                 else ("Engine error", "Retrying automatically"))
                 text(177, 88, error, 11, MUTED)
@@ -201,12 +261,28 @@ class Screen:
             else:
                 text(177, 88, details, 11, MUTED)
                 text(177, 111, "↑↓←→  /  F X Z C", 11, MUTED)
-            text(177, 129, "Enter  " + tr("place") + "     U  " + tr("undo"), 11)
+            undo_hint = "     U  " + tr("undo") if not session or session.allow_undo else ""
+            text(177, 129, "Enter  " + tr("place") + undo_hint, 11)
             if countdown is not None:
                 draw.rectangle((5, 139, 315, 164), fill=PANEL)
                 text(160, 151, exit_message, 12, ACCENT, "mm")
             else:
                 text(177, 147, "Esc  " + tr("menu"), 11)
+            return image
+
+        if app.page == "lan_help":
+            text(14, 7, tr("lan_help"), 18)
+            lines = (("双方接入同一局域网，配对时需要联网。", "Zero 或网页都可创建房间，分享 10 位房间码。",
+                      "对手选「加入房间」，输入房间码即可。",
+                      "网页地址：fivezero.vercel.app",
+                      "请保持房主的应用或网页开启。",
+                      "若房间允许悔棋，轮到自己时按 U 退两手。") if lang == "zh" else
+                     ("Use the same LAN. Pairing requires internet access.", "Host on Zero or the web and share the 10-digit code.",
+                      "Choose Join room and enter the code on either device.", "Website: fivezero.vercel.app",
+                      "Keep the host application or browser tab open.", "When enabled, press U on your turn to undo two moves."))
+            for index, line in enumerate(lines):
+                text(14, 33 + index * 18, line, 10 if lang == "en" else 12)
+            text(14, 151, exit_message if countdown is not None else tr("lan_back"), 11, MUTED)
             return image
 
         if app.page == "rules_help":
@@ -233,12 +309,15 @@ class Screen:
         if app.page == "home":
             text(14, 10, TITLE, 23)
             board(draw, (190, 15, 305, 129), 9,
-                  {(2, 6): 1, (3, 5): 1, (4, 4): 1, (5, 3): 1, (6, 2): 1,
-                   (3, 6): 2, (4, 5): 2, (5, 4): 2, (4, 3): 2}, last=(6, 2))
+                  {point: 1 + index % 2 for index, point in enumerate(PREVIEW_MOVES)},
+                  last=PREVIEW_MOVES[-1])
             left, right, top, height = 14, 173, 38, 20
         elif app.page == "settings":
             text(14, 7, tr("settings"), 18)
             left, right, top, height = 14, 305, 27, 13
+        elif app.page in ("lan", "lan_setup"):
+            text(14, 13, tr("lan_host" if app.page == "lan_setup" else "lan"), 19)
+            left, right, top, height = 14, 305, 41, 20
         else:
             text(14, 13, tr("replace_title"), 19)
             left, right, top, height = 14, 305, 48, 24
@@ -254,7 +333,7 @@ class Screen:
                 text(right - 9, y + (height - 12) // 2, tr(value), 12, MUTED, "rt")
 
         footer = ("↑↓ / F X    ←→ / Z C  " + tr("change") + "    Esc  " + tr("back")
-                  if app.page == "settings" else "Enter  " + tr("choose") + "     " + tr("hold_exit"))
+                  if app.page in ("settings", "lan_setup") else "Enter  " + tr("choose") + "     " + tr("hold_exit"))
         if countdown is not None:
             text(14, 152, exit_message, 11, ACCENT)
             return image

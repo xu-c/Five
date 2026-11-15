@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Five</title>
+  <link rel="stylesheet" href="/five.css">
+  <script src="/peer.js" defer></script>
+  <script src="/five.js" defer></script>
+</head>
+<body>
+  <main>
+    <div class="board-panel" id="board-panel" hidden>
+      <canvas id="board" width="660" height="660" tabindex="0" aria-label="五子棋棋盘"></canvas>
+    </div>
+    <section class="sidebar">
+      <header><h1>Five</h1><button id="language" type="button">English</button></header>
+      <p id="subtitle">局域网联机</p>
+      <p id="status" role="status"></p>
+      <div id="room-menu">
+        <button id="create-mode" type="button">创建房间</button>
+        <button id="join-mode" type="button">加入房间</button>
+      </div>
+      <form id="room-form" hidden>
+        <div id="code-fields">
+          <label for="code" id="code-label">房间码</label>
+          <input id="code" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="off" required>
+        </div>
+        <div id="create-options" hidden>
+          <label for="first" id="first-label">先手</label>
+          <select id="first"><option id="first-host" value="host">房主</option><option id="first-guest" value="guest">加入方</option></select>
+          <label for="rule" id="rule-label">规则</label>
+          <select id="rule"><option id="rule-free" value="free">自由</option><option id="rule-renju" value="renju">连珠禁手</option></select>
+          <label for="size" id="size-label">棋盘</label>
+          <select id="size"><option value="15">15 × 15</option><option value="13">13 × 13</option></select>
+          <label class="undo-choice"><input id="allow-undo" type="checkbox"> <span id="undo-label">允许悔棋</span></label>
+        </div>
+        <button id="room-submit" type="submit">加入房间</button>
+        <button id="back" type="button">返回</button>
+      </form>
+      <div id="playing" hidden>
+        <p id="room-info" hidden></p>
+        <p id="peer-wait" hidden>请保持此标签页打开。</p>
+        <p id="coordinates"></p>
+        <p class="keys">↑ ↓ ← → / F X Z C<br>Enter <span id="place-label">落子</span></p>
+        <button id="sound" aria-pressed="true" type="button">音效开启</button>
+        <button id="undo" type="button" hidden>悔棋</button>
+        <button id="leave" type="button">退出房间</button>
+      </div>
+      <details>
+        <summary id="rules">规则说明</summary>
+        <p id="freestyle-rule"></p>
+        <p id="renju-rule"></p>
+      </details>
+    </section>
+  </main>
+  <audio id="stone" src="/stone.wav" preload="auto"></audio>
+</body>
+</html>
