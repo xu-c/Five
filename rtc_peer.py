@@ -153,7 +153,7 @@ class RtcPeer:
             await self.pc.setLocalDescription(await self.pc.createAnswer())
             await asyncio.to_thread(signal, "answer", code=code, key=str(uuid4()), sdp=self.pc.localDescription.sdp)
             await asyncio.wait_for(self.opened.wait(), timeout=16)
-            result = await self.send("join", {})
+            result = await self.send("join", {"rematch": True})
             return {**result, "token": "peer"}
         except RoomError:
             raise

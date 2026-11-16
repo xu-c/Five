@@ -183,6 +183,9 @@ class App:
         self.game = Game(self.settings.size, self.settings.bans)
         self.mode, self.level = mode, self.settings.level
         self.player_color = self.settings.player_color
+        self.begin_game()
+
+    def begin_game(self):
         self.cursor = (self.game.size // 2,) * 2
         self.open("game")
         self.save()
@@ -227,7 +230,10 @@ class App:
             self.handle_lan(key, direction)
             return
         if self.page == "game":
-            if key == "u":
+            if key == "enter" and self.game.ended:
+                self.game = Game(self.game.size, self.game.bans)
+                self.begin_game()
+            elif key == "u":
                 self.undo()
             elif direction:
                 self.cursor = tuple((value + step) % self.game.size
@@ -322,7 +328,10 @@ class App:
             self.lan_cursor = tuple((value + step) % session.game.size
                                     for value, step in zip(self.lan_cursor, direction))
         elif key == "enter":
-            session.move(self.lan_cursor if session.game else (0, 0))
+            if session.game and session.game.ended:
+                session.rematch()
+            elif session.game:
+                session.move(self.lan_cursor)
         elif key == "u":
             session.undo()
 
@@ -383,14 +392,17 @@ class App:
             return
         if self.lan is not None:
             before = self.lan.game
+            previous_round = self.lan.round_number
             if self.lan.tick():
                 current = self.lan.game
-                if before is None and current is not None:
+                new_round = previous_round != self.lan.round_number
+                if current is not None and (before is None or new_round):
                     self.lan_cursor = (current.size // 2,) * 2
                 elif (before and current and len(before.history) > len(current.history)
                       and current.turn == self.lan.color):
                     self.lan_cursor = before.history[len(current.history)]
-                if self.page == "lan_game" and before and current and len(before.history) < len(current.history):
+                if (self.page == "lan_game" and not new_round and before and current
+                        and len(before.history) < len(current.history)):
                     self.play_sound()
                 self.dirty = True
         if self.job and self.job[0].done():

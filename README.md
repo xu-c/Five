@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.2.0-2_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.2.0-3_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.2.0-2_arm64.deb
+sudo apt install ./five_1.2.0-3_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -39,11 +39,17 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 
 | 简体中文 | English |
 | --- | --- |
+| ![终局与重新开始](screenshots/results-zh.png) | ![Results and Play again](screenshots/results-en.png) |
 | ![联机对局](screenshots/lan-game-zh.png) | ![LAN match](screenshots/lan-game-en.png) |
 | ![创建房间](screenshots/room-setup-zh.png) | ![Room setup](screenshots/room-setup-en.png) |
 | ![等待对手](screenshots/room-code-zh.png) | ![Waiting for opponent](screenshots/room-code-en.png) |
 
 ## 最近改动 / What's new
+
+**1.2.0-3**
+
+- 对局结束后显示「重新开始」。离线对局保留当前设置，联机对局在双方确认后于原房间重新开始。
+- The results screen now offers **Play again**. Offline games keep the current settings. In LAN play, both players confirm to start another game in the same room.
 
 **1.2.0-2**
 
@@ -87,7 +93,7 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 | 按键 | 操作 |
 | --- | --- |
 | 方向键或 F / X / Z / C | 上 / 下 / 左 / 右移动光标，跨过边缘时从对侧出现 |
-| Enter | 落子或确认菜单选项 |
+| Enter | 落子、确认菜单选项，或在终局后重新开始 |
 | U | 悔棋。人机模式回到玩家上次落子前，双人模式退一步 |
 | Esc 短按 | 松开时返回主菜单 |
 | Esc 长按 3 秒 | 从任意页面退出应用 |

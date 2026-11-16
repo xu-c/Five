@@ -25,6 +25,7 @@ const strings = {
     pair_unavailable: "暂时无法连接配对服务，请稍后重试。",
     first: "先手", firstHost: "房主", firstGuest: "加入方", rule: "规则", size: "棋盘",
     allowUndo: "允许悔棋", undo: "悔棋", cannot_undo: "当前无法悔棋",
+    restart: "重新开始", rematchWait: "等待对手确认", rematchOffer: "对手请求再来一局",
   },
   en: {
     language: "简体中文", lan: "LAN play", code: "Room code", join: "Join room", back: "Back",
@@ -50,6 +51,7 @@ const strings = {
     pair_unavailable: "The pairing service is temporarily unavailable. Try again shortly.",
     first: "First move", firstHost: "Host", firstGuest: "Guest", rule: "Rules", size: "Board",
     allowUndo: "Allow undo", undo: "Undo", cannot_undo: "Cannot undo now",
+    restart: "Play again", rematchWait: "Waiting for your opponent", rematchOffer: "Your opponent wants a rematch",
   },
 };
 
@@ -74,11 +76,12 @@ function clearSeat() {
 }
 
 function accept(next) {
-  if (!state) cursor = [Math.floor(next.size / 2), Math.floor(next.size / 2)];
-  if (state && next.moves.length < state.moves.length && next.turn === seat.color) {
+  const newRound = !state || next.round !== state.round;
+  if (newRound) cursor = [Math.floor(next.size / 2), Math.floor(next.size / 2)];
+  if (!newRound && next.moves.length < state.moves.length && next.turn === seat.color) {
     cursor = state.moves[next.moves.length];
   }
-  if (sound && state && next.moves.length > state.moves.length) {
+  if (sound && !newRound && next.moves.length > state.moves.length) {
     const audio = byId("stone");
     audio.currentTime = 0;
     audio.play().catch(() => {});
@@ -93,6 +96,11 @@ function canPlay() {
 
 function canUndo() {
   return canPlay() && state.undo && state.moves.length >= 2 && !pendingAction;
+}
+
+function canRematch() {
+  return state?.ended && Array.isArray(state.rematch) && !state.rematch.includes(seat.color)
+    && !disconnected && !pendingAction;
 }
 
 function queuePoll(delay = 350) {
@@ -214,7 +222,14 @@ function undo() {
   if (!busy) queuePoll(0);
 }
 
+function rematch() {
+  if (!canRematch()) return;
+  pendingAction = {name: "rematch", body: {revision: state.revision}};
+  if (!busy) queuePoll(0);
+}
+
 byId("undo").onclick = () => { undo(); canvas.focus(); };
+byId("rematch").onclick = () => { rematch(); canvas.focus(); };
 
 document.addEventListener("keydown", event => {
   if (!state || !seat || /^(INPUT|BUTTON|SUMMARY)$/.test(event.target.tagName)) return;
@@ -225,7 +240,8 @@ document.addEventListener("keydown", event => {
     render();
   } else if (event.key === "Enter" && !event.repeat) {
     event.preventDefault();
-    place();
+    if (state.ended) rematch();
+    else place();
   } else if (event.key.toLowerCase() === "u" && !event.repeat) {
     undo();
   }
@@ -307,7 +323,7 @@ function render() {
     "create-mode":"create", "join-mode":"join", back:"back", "code-label":"code", "peer-wait":"webWait",
     "first-label":"first", "first-host":"firstHost", "first-guest":"firstGuest",
     "rule-label":"rule", "rule-free":"free", "rule-renju":"renju", "size-label":"size",
-    "undo-label":"allowUndo", undo:"undo",
+    "undo-label":"allowUndo", undo:"undo", rematch:"restart",
     leave:"leave", rules:"rules", "freestyle-rule":"freestyle", "renju-rule":"renjuRule",
   })) byId(id).textContent = t[key];
   byId("subtitle").textContent = seat && state ?
@@ -324,8 +340,14 @@ function render() {
   byId("room-info").hidden = !seat?.code || Boolean(state?.ready);
   byId("room-info").textContent = seat?.code ? `${t.code} ${seat.code}` : "";
   byId("peer-wait").hidden = !peer || !seat?.code || Boolean(state?.ready);
-  byId("undo").hidden = !state?.undo;
+  byId("undo").hidden = !state?.undo || state.ended;
   byId("undo").disabled = !canUndo();
+  const votes = state?.ended && Array.isArray(state.rematch) ? state.rematch : null;
+  const voted = votes?.includes(seat.color);
+  byId("rematch").hidden = !votes || voted;
+  byId("rematch").disabled = !canRematch();
+  byId("rematch-status").hidden = !votes?.length;
+  byId("rematch-status").textContent = voted ? t.rematchWait : t.rematchOffer;
   byId("board-panel").hidden = !state;
   byId("sound").textContent = sound ? t.on : t.off;
   byId("sound").setAttribute("aria-pressed", String(sound));

@@ -92,6 +92,8 @@ class PeerMatch {
     this.hostColor = options.host_first ? 1 : 2;
     this.undo = options.undo;
     this.revision = 0;
+    this.round = 1;
+    this.rematch = null;
     this.ready = false;
     this.closed = false;
   }
@@ -99,18 +101,34 @@ class PeerMatch {
   state() {
     const game = this.game;
     return {size: game.size, renju: game.renju, moves: game.moves.slice(), undo: this.undo,
-      ready: this.ready, turn: game.turn, ended: game.ended, revision: this.revision, ...game.result};
+      ready: this.ready, turn: game.turn, ended: game.ended, revision: this.revision,
+      round: this.round, rematch: this.rematch ? [...this.rematch] : null, ...game.result};
   }
 
   call(action, data, color) {
     const game = this.game;
     if (this.closed) throw new Error("room_closed");
-    if (action === "join") return {color, state: this.state()};
+    if (action === "join") {
+      if (color !== this.hostColor && data.rematch === true && !this.rematch) this.rematch = new Set();
+      return {color, state: this.state()};
+    }
     if (action === "leave") {
       this.closed = true;
       return {};
     }
     if (action === "state") return this.state();
+    if (action === "rematch") {
+      if (!this.rematch || !this.ready || !game.ended) throw new Error("not_turn");
+      if (data.revision !== this.revision) throw new Error("stale_move");
+      this.rematch.add(color);
+      if (this.rematch.size === 2) {
+        this.game = new PeerGame(game.size, game.renju);
+        this.rematch.clear();
+        this.round++;
+        this.revision++;
+      }
+      return this.state();
+    }
     if (!["move", "undo"].includes(action)) throw new Error("invalid_request");
     if (!this.ready || game.turn !== color || game.ended) throw new Error("not_turn");
     if (data.revision !== this.revision) throw new Error("stale_move");
@@ -238,7 +256,7 @@ class BrowserPeer {
     await gatherIce(this.pc);
     await signalRoom("answer", {code, key: crypto.randomUUID(), sdp: this.pc.localDescription.sdp});
     await this.waitForChannel();
-    return this.call("join", {});
+    return this.call("join", {rematch: true});
   }
 
   async waitForChannel() {

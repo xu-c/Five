@@ -17,6 +17,8 @@ class Room:
         self.host_color = BLACK if host_first else WHITE
         self.undo = undo
         self.revision = 0
+        self.round_number = 1
+        self.rematch = None
         self.players = {}
         self.closed = False
 
@@ -28,6 +30,8 @@ class Room:
             "ended": game.ended, "winner": game.result.winner,
             "line": game.result.line, "foul": game.result.foul,
             "undo": self.undo, "revision": self.revision,
+            "round": self.round_number,
+            "rematch": sorted(self.rematch) if self.rematch is not None else None,
         }
 
     def add_player(self):
@@ -41,11 +45,25 @@ class Room:
             raise RoomError("room_closed")
         color = self.players[token]
         if action == "join":
+            if color != self.host_color and body.get("rematch") is True and self.rematch is None:
+                self.rematch = set()
             return {"color": color, "state": self.snapshot()}
         if action == "leave":
             self.closed = True
             return {}
         if action == "state":
+            return self.snapshot()
+        if action == "rematch":
+            if self.rematch is None or not self.game.ended or len(self.players) != 2:
+                raise RoomError("not_turn")
+            if type(body.get("revision")) is not int or body["revision"] != self.revision:
+                raise RoomError("stale_move")
+            self.rematch.add(color)
+            if len(self.rematch) == 2:
+                self.game = Game(self.game.size, self.game.bans)
+                self.rematch.clear()
+                self.round_number += 1
+                self.revision += 1
             return self.snapshot()
         if action not in ("move", "undo"):
             raise RoomError("invalid_request")

@@ -18,6 +18,8 @@ class LanSession:
         self.ready = False
         self.allow_undo = False
         self.revision = 0
+        self.round_number = 1
+        self.rematch_choices = None
         self.error = ""
         self.disconnected = False
         self.closed = False
@@ -28,10 +30,22 @@ class LanSession:
         self.job = self.worker.submit(self.transport, self.action, code=code)
 
     @property
-    def can_play(self):
+    def can_act(self):
         return (self.ready and not self.closed and not self.disconnected
-                and self.pending_action is None and (self.job is None or self.action == "state")
-                and not self.game.ended and self.game.turn == self.color)
+                and self.pending_action is None and (self.job is None or self.action == "state"))
+
+    @property
+    def can_play(self):
+        return self.can_act and not self.game.ended and self.game.turn == self.color
+
+    @property
+    def can_rematch(self):
+        return (self.can_act and self.game.ended and self.rematch_choices is not None
+                and self.color not in self.rematch_choices)
+
+    def rematch(self):
+        if self.can_rematch:
+            self.pending_action = ("rematch", self.revision, {})
 
     def move(self, point):
         if self.can_play:
@@ -59,8 +73,10 @@ class LanSession:
                 if size not in (13, 15) or type(renju) is not bool or len(moves) > size * size:
                     raise ValueError("Invalid room settings")
                 history = [tuple(point) for point in moves]
+                round_number = state.get("round", 1)
+                rematch_choices = state.get("rematch")
                 game = self.game
-                if game is None or game.history != history:
+                if game is None or game.history != history or round_number != self.round_number:
                     game = Game(size, FOULS if renju else ())
                     for point in history:
                         if (len(point) != 2 or any(type(value) is not int for value in point)
@@ -69,11 +85,13 @@ class LanSession:
                 if starting:
                     self.token, self.color = token, color
                 changed = (self.game is None or self.game.history != game.history
+                           or round_number != self.round_number or rematch_choices != self.rematch_choices
                            or self.ready != state["ready"] or was_disconnected)
-                if action in ("move", "undo") or self.game and self.game.history != game.history:
+                if action in ("move", "undo", "rematch") or changed:
                     self.error = ""
                 self.game, self.ready = game, state["ready"]
                 self.revision = state.get("revision", len(history))
+                self.round_number, self.rematch_choices = round_number, rematch_choices
                 self.allow_undo = state.get("undo", False)
                 self.disconnected = False
                 self.next_poll = monotonic() + .35
@@ -93,7 +111,8 @@ class LanSession:
             if self.pending_action is not None:
                 action, revision, body = self.pending_action
                 self.pending_action = None
-                if self.can_play and revision == self.revision:
+                allowed = self.can_rematch if action == "rematch" else self.can_play
+                if allowed and revision == self.revision:
                     self.action = action
                     self.job = self.worker.submit(self.transport, action, token=self.token,
                                                   revision=revision, **body)

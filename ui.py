@@ -73,6 +73,9 @@ LABELS = {
     "cancel": ("取消", "Cancel"), "replace": ("开始新局", "Start new game"),
     "choose": ("选择", "Select"), "change": ("修改", "Change"), "back": ("返回", "Back"),
     "place": ("落子", "Place"), "undo": ("悔棋", "Undo"), "menu": ("菜单", "Menu"),
+    "restart": ("重新开始", "Play again"),
+    "rematch_wait": ("等待对手确认", "Waiting for opponent"),
+    "rematch_accept": ("对手请求再来一局", "Opponent wants a rematch"),
     "hold_exit": ("长按 Esc 3 秒退出", "Hold Esc 3s to quit"),
     "exit_countdown": ("继续按住 Esc · {} 秒后退出", "Keep holding Esc · {}s to quit"),
 }
@@ -253,7 +256,19 @@ class Screen:
                 details = tr("move_number").format(len(game.history) + (not game.ended))
                 if not game.ended:
                     details += f"   {chr(65 + x)}{y + 1}"
-            if not session and app.engine_failures:
+            if game.ended:
+                text(177, 88, details, 11, MUTED)
+                if session and session.disconnected:
+                    text(177, 113, tr("lan_reconnect"), 11, MUTED)
+                elif not session or session.rematch_choices is not None:
+                    votes = session.rematch_choices if session else ()
+                    if session and session.color in votes:
+                        text(177, 129, tr("rematch_wait"), 11, ACCENT)
+                    else:
+                        if votes:
+                            text(177, 108, tr("rematch_accept"), 10, MUTED)
+                        text(177, 129, "Enter  " + tr("restart"), 11, ACCENT)
+            elif not session and app.engine_failures:
                 error, retry = (("引擎故障", "正在自动重试") if lang == "zh"
                                 else ("Engine error", "Retrying automatically"))
                 text(177, 88, error, 11, MUTED)
@@ -261,8 +276,9 @@ class Screen:
             else:
                 text(177, 88, details, 11, MUTED)
                 text(177, 111, "↑↓←→  /  F X Z C", 11, MUTED)
-            undo_hint = "     U  " + tr("undo") if not session or session.allow_undo else ""
-            text(177, 129, "Enter  " + tr("place") + undo_hint, 11)
+            if not game.ended:
+                undo_hint = "     U  " + tr("undo") if not session or session.allow_undo else ""
+                text(177, 129, "Enter  " + tr("place") + undo_hint, 11)
             if countdown is not None:
                 draw.rectangle((5, 139, 315, 164), fill=PANEL)
                 text(160, 151, exit_message, 12, ACCENT, "mm")
