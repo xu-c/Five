@@ -26,7 +26,7 @@ LABELS = {
     "lan_help": ("联机说明", "LAN guide"),
     "cannot_undo": ("当前无法悔棋", "Cannot undo now"),
     "lan_join": ("加入房间", "Join room"),
-    "lan_code_hint": ("请输入对手分享的 10 位房间码", "Enter the 10-digit code from your opponent"),
+    "lan_code_hint": ("请输入对手分享的 6 位房间码", "Enter the 6-digit code from your opponent"),
     "pair_failed": ("配对失败，请重新加入", "Pairing failed. Try joining again."),
     "pair_unavailable": ("配对服务暂不可用", "Pairing service unavailable"),
     "pair_expired": ("房间码已过期，请重新创建", "Code expired. Create a new room."),
@@ -299,12 +299,12 @@ class Screen:
 
         if app.page == "lan_help":
             text(14, 7, tr("lan_help"), 18)
-            lines = (("双方接入同一局域网，配对时需要联网。", "Zero 或网页都可创建房间，分享 10 位房间码。",
+            lines = (("双方接入同一局域网，配对时需要联网。", "Zero 或网页都可创建房间，分享 6 位房间码。",
                       "对手选「加入房间」，输入房间码即可。",
                       "网页地址：fivezero.vercel.app",
                       "请保持房主的应用或网页开启。",
                       "若房间允许悔棋，轮到自己时按 U 退两手。") if lang == "zh" else
-                     ("Use the same LAN. Pairing requires internet access.", "Host on Zero or the web and share the 10-digit code.",
+                     ("Use the same LAN. Pairing requires internet access.", "Host on Zero or the web and share the 6-digit code.",
                       "Choose Join room and enter the code on either device.", "Website: fivezero.vercel.app",
                       "Keep the host application or browser tab open.", "When enabled, press U on your turn to undo two moves."))
             for index, line in enumerate(lines):

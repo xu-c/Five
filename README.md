@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.2.1-2_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.2.1-3_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.2.1-2_arm64.deb
+sudo apt install ./five_1.2.1-3_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -16,12 +16,12 @@ sudo apt install ./five_1.2.1-2_arm64.deb
 
 Zero 和 [Five 网页版](https://fivezero.vercel.app) 使用同一套流程。Zero 的入口在「局域网联机」菜单内，网页直接显示两个按钮。
 
-1. 房主选「创建房间」，设置先手、规则、棋盘和悔棋，确认后把自动生成的 10 位房间码发给对手。
-2. 对手选「加入房间」，输入这 10 位房间码。任何一方都可以用 Zero 或网页。
+1. 房主选「创建房间」，设置先手、规则、棋盘和悔棋，确认后把自动生成的 6 位房间码发给对手。
+2. 对手选「加入房间」，输入这 6 位房间码。任何一方都可以用 Zero 或网页。
 
 双方应接入同一局域网。创建和加入时需要联网交换配对信息，落子通过 WebRTC 在双方之间直连。目前仅支持局域网对战。房间码 5 分钟内有效，对局时保持应用或网页打开。开启悔棋后，轮到自己时按 `U` 或点击「悔棋」回到自己上一手之前。
 
-On a Zero or the [Five web app](https://fivezero.vercel.app), choose **Create room**, set the match options, and share the generated 10-digit code. The other player chooses **Join room** and enters the code. Either device can host or join. Both players should be on the same LAN. Internet access is required for pairing, and moves travel directly between players over WebRTC. The code is valid for five minutes. Keep Five or the browser tab open during the game.
+On a Zero or the [Five web app](https://fivezero.vercel.app), choose **Create room**, set the match options, and share the generated 6-digit code. The other player chooses **Join room** and enters the code. Either device can host or join. Both players should be on the same LAN. Internet access is required for pairing, and moves travel directly between players over WebRTC. The code is valid for five minutes. Keep Five or the browser tab open during the game.
 
 ## 商店简介
 
@@ -29,11 +29,11 @@ On a Zero or the [Five web app](https://fivezero.vercel.app), choose **Create ro
 
 **简体中文**
 
-在 Cardputer Zero 上下五子棋。可与 Rapfi 对弈，选择三档难度，也可在同一台设备轮流落子。联机时，Zero 和浏览器都可创建房间，用 10 位房间码加入。同一局域网内可双 Zero、双网页或混合对战，电脑无需安装或运行额外程序。支持 15×15 和 13×13 棋盘、自由规则与连珠禁手，界面提供简体中文和英文。联机配对需要互联网连接，对局在局域网内直连。网页版：https://fivezero.vercel.app/
+在 Cardputer Zero 上下五子棋。可与 Rapfi 对弈，选择三档难度，也可在同一台设备轮流落子。联机时，Zero 和浏览器都可创建房间，用 6 位房间码加入。同一局域网内可双 Zero、双网页或混合对战，电脑无需安装或运行额外程序。支持 15×15 和 13×13 棋盘、自由规则与连珠禁手，界面提供简体中文和英文。联机配对需要互联网连接，对局在局域网内直连。网页版：https://fivezero.vercel.app/
 
 **English**
 
-Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardputer Zero, or play over your LAN. Either a Zero or a browser can host or join using a 10-digit room code. The browser needs no extra software. Choose a 15×15 or 13×13 board with Freestyle or Renju fouls. The interface supports Simplified Chinese and English. Pairing requires internet access. Moves travel directly between players on the LAN. Web app: https://fivezero.vercel.app/
+Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardputer Zero, or play over your LAN. Either a Zero or a browser can host or join using a 6-digit room code. The browser needs no extra software. Choose a 15×15 or 13×13 board with Freestyle or Renju fouls. The interface supports Simplified Chinese and English. Pairing requires internet access. Moves travel directly between players on the LAN. Web app: https://fivezero.vercel.app/
 
 ## 截图 / Screenshots
 
@@ -45,6 +45,11 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 | ![等待对手](screenshots/room-code-zh.png) | ![Waiting for opponent](screenshots/room-code-en.png) |
 
 ## 最近改动 / What's new
+
+**1.2.1-3**
+
+- Zero 和网页版改用 6 位房间码创建和加入局域网对局。
+- Zero and the web app now use 6-digit codes to create and join LAN games.
 
 **1.2.1-2**
 

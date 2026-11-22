@@ -15,7 +15,7 @@ from time import monotonic
 from game import BLACK, WHITE, FOULS, Game
 from lan_session import LanSession
 from rapfi_engine import pick_move
-from rtc_peer import RtcPeer
+from rtc_peer import ROOM_CODE_LENGTH, RtcPeer
 
 SIZES = (15, 13)
 RULES = ("free", "renju")
@@ -342,10 +342,10 @@ class App:
         if self.page == "lan_input":
             if key == "backspace":
                 self.room_code = self.room_code[:-1]
-            elif len(key) == 1 and key in "0123456789" and len(self.room_code) < 10:
+            elif len(key) == 1 and key in "0123456789" and len(self.room_code) < ROOM_CODE_LENGTH:
                 self.room_code += key
             elif key == "enter":
-                if len(self.room_code) != 10:
+                if len(self.room_code) != ROOM_CODE_LENGTH:
                     self.notice = "lan_code_hint"
                     return
                 self.lan = LanSession(RtcPeer(), self.room_code)

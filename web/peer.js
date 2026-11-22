@@ -218,7 +218,7 @@ class BrowserPeer {
     this.attach(this.pc.createDataChannel("five"));
     await this.pc.setLocalDescription(await this.pc.createOffer());
     await gatherIce(this.pc);
-    this.receipt = await signalRoom("offer", {sdp: this.pc.localDescription.sdp});
+    this.receipt = await signalRoom("offer", {sdp: this.pc.localDescription.sdp, code_length: 6});
     this.waitForAnswer().catch(() => this.close("pair_failed"));
     return {code: this.receipt.code, color: this.match.hostColor, state: this.match.state()};
   }

@@ -11,6 +11,7 @@ from uuid import uuid4
 from lan import Room, RoomError
 
 SIGNAL_URL = "https://wmoaxlrncbfcsyqtfbku.supabase.co/functions/v1/five-pair"
+ROOM_CODE_LENGTH = 6
 
 
 def signal(action, timeout=8, **data):
@@ -102,7 +103,8 @@ class RtcPeer:
         description = self.open_connection()
         self.attach(self.pc.createDataChannel("five"))
         await self.pc.setLocalDescription(await self.pc.createOffer())
-        self.receipt = await asyncio.to_thread(signal, "offer", sdp=self.pc.localDescription.sdp)
+        self.receipt = await asyncio.to_thread(
+            signal, "offer", sdp=self.pc.localDescription.sdp, code_length=ROOM_CODE_LENGTH)
         seat = self.room.add_player()
         self.pairing = self.loop.create_task(self.wait_for_answer(description))
         return {**seat, "code": self.receipt["code"]}
