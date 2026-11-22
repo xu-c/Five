@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.2.1-3_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.2.1-4_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.2.1-3_arm64.deb
+sudo apt install ./five_1.2.1-4_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -31,20 +31,30 @@ On a Zero or the [Five web app](https://fivezero.vercel.app), choose **Create ro
 
 在 Cardputer Zero 上下五子棋。可与 Rapfi 对弈，选择三档难度，也可在同一台设备轮流落子。联机时，Zero 和浏览器都可创建房间，用 6 位房间码加入。同一局域网内可双 Zero、双网页或混合对战，电脑无需安装或运行额外程序。支持 15×15 和 13×13 棋盘、自由规则与连珠禁手，界面提供简体中文和英文。联机配对需要互联网连接，对局在局域网内直连。网页版：https://fivezero.vercel.app/
 
+Zero 切换语言：从主菜单进入「设置 / Settings」，选中「语言 / Language」，按 Enter 或左右方向键（Z / C）切换简体中文和 English。网页版可用右上角的「English / 简体中文」按钮切换。
+
 **English**
 
 Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardputer Zero, or play over your LAN. Either a Zero or a browser can host or join using a 6-digit room code. The browser needs no extra software. Choose a 15×15 or 13×13 board with Freestyle or Renju fouls. The interface supports Simplified Chinese and English. Pairing requires internet access. Moves travel directly between players on the LAN. Web app: https://fivezero.vercel.app/
+
+To change the language on Zero, open Settings (设置) from the main menu, select Language (语言), and press Enter or Left/Right (Z/C) to switch between Simplified Chinese and English. On the web, use the English / 简体中文 button in the top right.
 
 ## 截图 / Screenshots
 
 | 简体中文 | English |
 | --- | --- |
+| ![切换语言](screenshots/renju-settings-zh.png) | ![Changing the language](screenshots/renju-settings-en.png) |
 | ![终局与重新开始](screenshots/results-zh.png) | ![Results and Play again](screenshots/results-en.png) |
 | ![联机对局](screenshots/lan-game-zh.png) | ![LAN match](screenshots/lan-game-en.png) |
 | ![创建房间](screenshots/room-setup-zh.png) | ![Room setup](screenshots/room-setup-en.png) |
 | ![等待对手](screenshots/room-code-zh.png) | ![Waiting for opponent](screenshots/room-code-en.png) |
 
 ## 最近改动 / What's new
+
+**1.2.1-4**
+
+- 在应用介绍中补充 Zero 和网页版的语言切换步骤。
+- The app description now explains how to switch languages on Zero and on the web.
 
 **1.2.1-3**
 
