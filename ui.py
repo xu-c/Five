@@ -55,7 +55,12 @@ LABELS = {
     "language": ("语言", "Language"), "zh": ("简体中文", "简体中文"), "en": ("English", "English"),
     "three": ("三三", "Double three"), "four": ("四四", "Double four"),
     "overline": ("长连", "Overline"), "on": ("开", "On"), "off": ("关", "Off"),
-    "sound": ("落子音效", "Move sound"),
+    "sound": ("音效", "Sound effects"),
+    "show_fouls": ("显示禁手点", "Show forbidden points"),
+    "foul_action": ("禁手处理", "Forbidden moves"),
+    "foul_loss": ("判负", "Loss"),
+    "foul_block": ("禁止落子", "Block move"),
+    "forbidden": ("禁手，不能下这一步", "Forbidden move"),
     "rules_help": ("规则说明", "Rules guide"),
     "legacy_local": ("旧自定义棋局可用双人模式续下", "Resume old custom game in two-player mode"),
     "player_color": ("人机执棋", "Play as"),
@@ -88,7 +93,7 @@ def label(key, language):
 
 
 def board(draw, rect, size, stones, cursor=None, last=None, winning=(), foul=False,
-          *, gameplay=False):
+          *, gameplay=False, forbidden=()):
     left, top, right, bottom = rect
     draw.rounded_rectangle(rect, radius=5 if gameplay else 9, fill=WOOD)
     margin = 5 if gameplay else 10
@@ -120,6 +125,10 @@ def board(draw, rect, size, stones, cursor=None, last=None, winning=(), foul=Fal
     if last:
         x, y = pixel(last)
         draw.ellipse((x - 1, y - 1, x + 1, y + 1), fill="#e26047" if foul else "#4db99d")
+    for point in forbidden:
+        x, y = pixel(point)
+        draw.line((x - 2, y - 2, x + 2, y + 2), fill="#a71f24")
+        draw.line((x - 2, y + 2, x + 2, y - 2), fill="#a71f24")
     if cursor is not None:
         x, y = pixel(cursor)
         r = radius + 2 if gameplay else radius + 1
@@ -218,7 +227,8 @@ class Screen:
             last = game.history[-1] if game.history else None
             board(draw, (1, 1, 168, 168), game.size, game.board,
                   None if game.ended else cursor, last, game.result.line,
-                  bool(game.result.foul), gameplay=True)
+                  bool(game.result.foul), gameplay=True,
+                  forbidden=game.forbidden_points() if app.settings.show_fouls else ())
             text(177, 10, TITLE, 21)
             subtitle = (tr("lan") + "  ·  " + tr("play_black" if session.color == BLACK else "play_white")
                         if session else tr(app.mode) + "  ·  " +
@@ -309,13 +319,13 @@ class Screen:
             text(14, 73, tr("renju"), 13, ACCENT)
             if lang == "zh":
                 lines = ("黑棋恰好五连获胜，白棋五连或更长即胜。",
-                         "黑棋三三、四四或长连，判白胜。恰好五连优先。",
-                         "人机和双人都可选这两套规则。")
+                         "黑棋三三、四四或长连为禁手，恰好五连优先。",
+                         "可显示禁手点，并选择禁止落子或直接判负。")
             else:
                 lines = ("Black wins with exactly five. White wins with five or more.",
-                         "Black loses on double three, double four or overline",
+                         "Double three, double four and overline are forbidden",
                          "unless the move also makes exactly five.",
-                         "Both rules are available in either play mode.")
+                         "Options show these points and block the move or count a loss.")
             for y, line in zip((89, 104, 119, 134), lines):
                 text(14, y, line, 10 if lang == "en" else 12)
             text(14, 151, exit_message if countdown is not None else "Esc / Enter  " + tr("back"),
@@ -333,7 +343,7 @@ class Screen:
             left, right, top, height = 14, 305, 27, 13
         elif app.page in ("lan", "lan_setup"):
             text(14, 13, tr("lan_host" if app.page == "lan_setup" else "lan"), 19)
-            left, right, top, height = 14, 305, 41, 20
+            left, right, top, height = 14, 305, 41, 17
         else:
             text(14, 13, tr("replace_title"), 19)
             left, right, top, height = 14, 305, 48, 24

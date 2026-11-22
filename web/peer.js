@@ -5,9 +5,10 @@ const axes = [[1, 0], [0, 1], [1, 1], [1, -1]];
 const stepFrom = ([x, y], [dx, dy], step) => [x + dx * step, y + dy * step];
 
 class PeerGame {
-  constructor(size, renju) {
+  constructor(size, renju, foulLoss = false) {
     this.size = size;
     this.renju = renju;
+    this.foulLoss = foulLoss;
     this.moves = [];
     this.board = new Map();
     this.result = {winner: 0, line: [], foul: ""};
@@ -74,7 +75,9 @@ class PeerGame {
 
   play(point) {
     if (this.ended || !point.every(Number.isInteger) || !this.empty(point)) return false;
-    this.result = this.inspect(point, this.turn);
+    const result = this.inspect(point, this.turn);
+    if (result.foul && !this.foulLoss) throw new Error("forbidden");
+    this.result = result;
     this.board.set(String(point), this.turn);
     this.moves.push(point);
     return true;
@@ -88,7 +91,7 @@ class PeerGame {
 
 class PeerMatch {
   constructor(options) {
-    this.game = new PeerGame(options.size, options.renju);
+    this.game = new PeerGame(options.size, options.renju, options.foul_loss);
     this.hostColor = options.host_first ? 1 : 2;
     this.undo = options.undo;
     this.revision = 0;
@@ -100,7 +103,7 @@ class PeerMatch {
 
   state() {
     const game = this.game;
-    return {size: game.size, renju: game.renju, moves: game.moves.slice(), undo: this.undo,
+    return {size: game.size, renju: game.renju, foul_loss: game.foulLoss, moves: game.moves.slice(), undo: this.undo,
       ready: this.ready, turn: game.turn, ended: game.ended, revision: this.revision,
       round: this.round, rematch: this.rematch ? [...this.rematch] : null, ...game.result};
   }
@@ -122,7 +125,7 @@ class PeerMatch {
       if (data.revision !== this.revision) throw new Error("stale_move");
       this.rematch.add(color);
       if (this.rematch.size === 2) {
-        this.game = new PeerGame(game.size, game.renju);
+        this.game = new PeerGame(game.size, game.renju, game.foulLoss);
         this.rematch.clear();
         this.round++;
         this.revision++;

@@ -19,12 +19,14 @@ class Move:
 
 
 class Game:
-    def __init__(self, size=15, bans=()):
+    def __init__(self, size=15, bans=(), foul_loss=True):
         self.size = size
         self.bans = frozenset(bans)
+        self.foul_loss = foul_loss
         self.board = {}
         self.history = []
         self.result = Move()
+        self._foul_map = None
 
     @property
     def turn(self):
@@ -118,12 +120,30 @@ class Game:
         if self.ended or not self.empty(point):
             return False
         outcome = self.inspect(point, self.turn)
+        if outcome.foul and not self.foul_loss:
+            return False
         self.board[point] = self.turn
         self.history.append(point)
         self.result = Move(WHITE, foul=outcome.foul) if outcome.foul else outcome
+        self._foul_map = None
         return True
+
+    def forbidden_points(self):
+        if not self.bans or self.turn != BLACK or self.ended:
+            return {}
+        if self._foul_map is None:
+            self._foul_map = {}
+            for y in range(self.size):
+                for x in range(self.size):
+                    point = (x, y)
+                    if self.empty(point):
+                        foul = self.inspect(point, BLACK).foul
+                        if foul:
+                            self._foul_map[point] = foul
+        return self._foul_map
 
     def undo(self, count=1):
         for _ in range(min(count, len(self.history))):
             del self.board[self.history.pop()]
         self.result = Move()
+        self._foul_map = None

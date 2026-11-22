@@ -70,14 +70,16 @@ class LanSession:
                     self.code = state.get("code", self.code)
                     state = state["state"]
                 size, renju, moves = state["size"], state["renju"], state["moves"]
-                if size not in (13, 15) or type(renju) is not bool or len(moves) > size * size:
+                foul_loss = state.get("foul_loss", True)
+                if (size not in (13, 15) or type(renju) is not bool
+                        or type(foul_loss) is not bool or len(moves) > size * size):
                     raise ValueError("Invalid room settings")
                 history = [tuple(point) for point in moves]
                 round_number = state.get("round", 1)
                 rematch_choices = state.get("rematch")
                 game = self.game
                 if game is None or game.history != history or round_number != self.round_number:
-                    game = Game(size, FOULS if renju else ())
+                    game = Game(size, FOULS if renju else (), foul_loss)
                     for point in history:
                         if (len(point) != 2 or any(type(value) is not int for value in point)
                                 or not game.play(point)):

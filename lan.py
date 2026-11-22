@@ -12,8 +12,8 @@ class RoomError(Exception):
 
 
 class Room:
-    def __init__(self, size, renju, host_first, undo):
-        self.game = Game(size, FOULS if renju else ())
+    def __init__(self, size, renju, host_first, undo, foul_loss=False):
+        self.game = Game(size, FOULS if renju else (), foul_loss)
         self.host_color = BLACK if host_first else WHITE
         self.undo = undo
         self.revision = 0
@@ -28,7 +28,7 @@ class Room:
             "size": game.size, "renju": bool(game.bans), "moves": game.history.copy(),
             "ready": len(self.players) == 2, "turn": game.turn,
             "ended": game.ended, "winner": game.result.winner,
-            "line": game.result.line, "foul": game.result.foul,
+            "line": game.result.line, "foul": game.result.foul, "foul_loss": game.foul_loss,
             "undo": self.undo, "revision": self.revision,
             "round": self.round_number,
             "rematch": sorted(self.rematch) if self.rematch is not None else None,
@@ -60,7 +60,7 @@ class Room:
                 raise RoomError("stale_move")
             self.rematch.add(color)
             if len(self.rematch) == 2:
-                self.game = Game(self.game.size, self.game.bans)
+                self.game = Game(self.game.size, self.game.bans, self.game.foul_loss)
                 self.rematch.clear()
                 self.round_number += 1
                 self.revision += 1
@@ -80,7 +80,9 @@ class Room:
             if type(body.get("ply")) is not int or body["ply"] != len(game.history):
                 raise RoomError("stale_move")
             x, y = body.get("x"), body.get("y")
-            if type(x) is not int or type(y) is not int or not game.play((x, y)):
+            if type(x) is not int or type(y) is not int or not game.empty((x, y)):
                 raise RoomError("occupied")
+            if not game.play((x, y)):
+                raise RoomError("forbidden")
         self.revision += 1
         return self.snapshot()

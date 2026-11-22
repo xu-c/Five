@@ -31,6 +31,9 @@
           <select id="first"><option id="first-host" value="host">房主</option><option id="first-guest" value="guest">加入方</option></select>
           <label for="rule" id="rule-label">规则</label>
           <select id="rule"><option id="rule-free" value="free">自由</option><option id="rule-renju" value="renju">连珠禁手</option></select>
+          <div id="renju-options" hidden>
+            <label class="undo-choice"><input id="foul-loss" type="checkbox"> <span id="foul-loss-label">黑棋下禁手直接判负</span></label>
+          </div>
           <label for="size" id="size-label">棋盘</label>
           <select id="size"><option value="15">15 × 15</option><option value="13">13 × 13</option></select>
           <label class="undo-choice"><input id="allow-undo" type="checkbox"> <span id="undo-label">允许悔棋</span></label>
@@ -45,6 +48,7 @@
         <p class="keys">↑ ↓ ← → / F X Z C<br>Enter <span id="place-label">落子</span></p>
         <button id="sound" aria-pressed="true" type="button">音效开启</button>
         <button id="undo" type="button" hidden>悔棋</button>
+        <label id="show-fouls-option" hidden><input id="show-fouls" type="checkbox"> <span id="show-fouls-label">显示禁手点</span></label>
         <button id="rematch" type="button" hidden>重新开始</button>
         <p id="rematch-status" role="status" hidden></p>
         <button id="leave" type="button">退出房间</button>

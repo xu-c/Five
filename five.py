@@ -36,6 +36,8 @@ class Settings:
     language: str = "zh"
     sound: bool = True
     player_color: int = BLACK
+    show_fouls: bool = False
+    foul_loss: bool = False
 
     @property
     def bans(self):
@@ -58,6 +60,7 @@ class App:
         self.room_host_first = True
         self.room_rule = "free"
         self.room_undo = False
+        self.room_foul_loss = False
         self.room_size = self.settings.size
         self.room_code = ""
         self.running = True
@@ -69,6 +72,7 @@ class App:
         self.job = None
         self.reset_engine_retry()
         self.sound_path = Path(__file__).with_name("stone.wav")
+        self.menu_sound_path = Path(__file__).with_name("menu.wav")
         self.aplay = which("aplay")
         self.sound_process = None
         self.load()
@@ -87,10 +91,12 @@ class App:
             if rule == "custom":
                 rule = "renju" if set(config.get("custom", ())) == set(FOULS) else "free"
             settings = Settings(config["size"], rule, config["level"], config["language"],
-                                config.get("sound", True), config.get("player_color", BLACK))
+                                config.get("sound", True), config.get("player_color", BLACK),
+                                config.get("show_fouls", False), config.get("foul_loss", False))
             if (settings.size not in SIZES or settings.rule not in RULES
                     or settings.level not in LEVELS or settings.language not in LANGUAGES
-                    or type(settings.sound) is not bool
+                    or any(type(value) is not bool for value in
+                           (settings.sound, settings.show_fouls, settings.foul_loss))
                     or type(settings.player_color) is not int or settings.player_color not in COLORS):
                 raise ValueError("Invalid settings")
             self.settings = settings
@@ -103,7 +109,10 @@ class App:
                     or mode not in ("cpu", "local") or level not in LEVELS
                     or type(player_color) is not int or player_color not in COLORS):
                 raise ValueError("Invalid game")
-            game = Game(size, bans)
+            foul_loss = saved.get("foul_loss", settings.foul_loss)
+            if type(foul_loss) is not bool:
+                raise ValueError("Invalid foul policy")
+            game = Game(size, bans, foul_loss)
             for move in saved["moves"]:
                 if (len(move) != 2 or any(type(value) is not int for value in move)
                         or not game.play(tuple(move))):
@@ -124,7 +133,7 @@ class App:
         if self.game and not self.game.ended:
             saved = {"size": self.game.size, "bans": sorted(self.game.bans),
                      "mode": self.mode, "level": self.level, "moves": self.game.history,
-                     "player_color": self.player_color}
+                     "player_color": self.player_color, "foul_loss": self.game.foul_loss}
         temporary = None
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -153,6 +162,11 @@ class App:
                 ("sound", "on" if self.settings.sound else "off"),
                 ("rules_help", ""),
             ]
+            if self.settings.rule == "renju":
+                rows[2:2] = [
+                    ("show_fouls", "on" if self.settings.show_fouls else "off"),
+                    ("foul_action", "foul_loss" if self.settings.foul_loss else "foul_block"),
+                ]
             return rows
         if self.page == "confirm":
             return [("cancel", ""), ("replace", "")]
@@ -161,10 +175,13 @@ class App:
                 return [("lan_resume", ""), ("lan_leave", ""), ("lan_help", "")]
             return [("lan_host", ""), ("lan_join", ""), ("lan_help", "")]
         if self.page == "lan_setup":
-            return [("lan_first", "lan_host_side" if self.room_host_first else "lan_guest_side"),
+            rows = [("lan_first", "lan_host_side" if self.room_host_first else "lan_guest_side"),
                     ("rules", self.room_rule), ("size", self.room_size),
                     ("undo", "on" if self.room_undo else "off"),
                     ("lan_host", "")]
+            if self.room_rule == "renju":
+                rows.insert(2, ("foul_action", "foul_loss" if self.room_foul_loss else "foul_block"))
+            return rows
         rows = [("cpu", ""), ("local", ""), ("lan", ""), ("settings", "")]
         if self.game and not self.game.ended:
             rows.insert(0, ("resume", ""))
@@ -180,7 +197,7 @@ class App:
         self.engine_retry_at = 0
 
     def start(self, mode):
-        self.game = Game(self.settings.size, self.settings.bans)
+        self.game = Game(self.settings.size, self.settings.bans, self.settings.foul_loss)
         self.mode, self.level = mode, self.settings.level
         self.player_color = self.settings.player_color
         self.begin_game()
@@ -196,6 +213,8 @@ class App:
             "difficulty": ("level", LEVELS), "language": ("language", LANGUAGES),
             "player_color": ("player_color", COLORS),
             "sound": ("sound", (False, True)),
+            "show_fouls": ("show_fouls", (False, True)),
+            "foul_action": ("foul_loss", (False, True)),
         }[row]
         index = options.index(getattr(self.settings, field))
         value = options[(index + direction) % len(options)]
@@ -218,6 +237,12 @@ class App:
             return
         self.dirty = True
         self.notice = ""
+        if not repeat and self.page not in ("game", "lan_game"):
+            typing_code = self.page == "lan_input" and (key == "backspace" or key in "0123456789")
+            turning_off = (self.page == "settings" and self.menu()[self.selected][0] == "sound"
+                           and self.settings.sound and (key == "enter" or direction and direction[0]))
+            if (direction or key == "enter" or typing_code) and not turning_off:
+                self.play_sound(menu=True)
         if self.page == "rules_help":
             if key == "enter":
                 self.open("settings")
@@ -231,7 +256,7 @@ class App:
             return
         if self.page == "game":
             if key == "enter" and self.game.ended:
-                self.game = Game(self.game.size, self.game.bans)
+                self.game = Game(self.game.size, self.game.bans, self.game.foul_loss)
                 self.begin_game()
             elif key == "u":
                 self.undo()
@@ -243,7 +268,7 @@ class App:
                     self.play_sound()
                     self.save()
                 elif not self.game.ended:
-                    self.notice = "occupied"
+                    self.notice = ("forbidden" if self.game.empty(self.cursor) else "occupied")
             return
         rows = self.menu()
         if direction and direction[1]:
@@ -256,6 +281,8 @@ class App:
                     self.room_host_first = not self.room_host_first
                 elif action == "rules":
                     self.room_rule = "renju" if self.room_rule == "free" else "free"
+                elif action == "foul_action":
+                    self.room_foul_loss = not self.room_foul_loss
                 elif action == "size":
                     self.room_size = 13 if self.room_size == 15 else 15
                 elif action == "undo":
@@ -269,6 +296,8 @@ class App:
                     self.open("rules_help")
             elif key == "enter" or direction:
                 self.update_setting(action, direction[0] if direction else 1)
+                if action == "sound" and self.settings.sound:
+                    self.play_sound(menu=True)
             return
         if key != "enter":
             return
@@ -282,6 +311,7 @@ class App:
             self.start(self.pending)
         elif action == "lan_host":
             self.room_host_first, self.room_rule, self.room_undo = True, "free", False
+            self.room_foul_loss = self.settings.foul_loss
             self.room_size = self.settings.size
             self.open("lan_setup")
         elif action == "lan_help":
@@ -303,7 +333,8 @@ class App:
 
     def start_lan(self):
         options = {"size": self.room_size, "renju": self.room_rule == "renju",
-                   "host_first": self.room_host_first, "undo": self.room_undo}
+                   "host_first": self.room_host_first, "undo": self.room_undo,
+                   "foul_loss": self.room_foul_loss}
         self.lan = LanSession(RtcPeer(options))
         self.open("lan_game")
 
@@ -352,6 +383,7 @@ class App:
         self.check_exit_hold()
         self.cancel_escape()
         if self.running and self.page != "home":
+            self.play_sound(menu=True)
             if self.page in ("lan_game", "lan_input", "lan_setup", "lan_help"):
                 if self.lan is not None and self.lan.closed:
                     self.leave_lan()
@@ -430,18 +462,19 @@ class App:
             self.job = (self.executor.submit(pick_move, snapshot, self.level),
                         game, tuple(game.history))
 
-    def play_sound(self):
+    def play_sound(self, *, menu=False):
         if not self.settings.sound:
             return
+        path = self.menu_sound_path if menu else self.sound_path
         try:
             if os.name == "nt":
                 import winsound
-                winsound.PlaySound(str(self.sound_path), winsound.SND_FILENAME |
+                winsound.PlaySound(str(path), winsound.SND_FILENAME |
                                    winsound.SND_ASYNC | winsound.SND_NODEFAULT)
             elif self.aplay:
                 self.stop_sound()
                 self.sound_process = subprocess.Popen(
-                    [self.aplay, "-q", str(self.sound_path)],
+                    [self.aplay, "-q", str(path)],
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except (OSError, RuntimeError):
             pass

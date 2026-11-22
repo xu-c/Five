@@ -9,7 +9,7 @@ const strings = {
     result: ["和棋", "黑棋胜", "白棋胜"], place: "落子", leave: "退出房间",
     leaving: "正在退出房间…", on: "音效开启", off: "音效关闭", rules: "规则说明", board: "五子棋棋盘",
     freestyle: "自由。黑白连成五颗或更多即胜。",
-    renjuRule: "连珠禁手。黑棋恰好五连获胜，白棋五连或更长即胜。黑棋三三、四四或长连判白胜，恰好五连优先。",
+    renjuRule: "连珠禁手。黑棋恰好五连获胜，白棋五连或更长即胜。黑棋三三、四四或长连是禁手，恰好五连优先。房主可选择阻止落子或直接判负。",
     wrong_code: "房间码错误", room_full: "房间已满", room_closed: "房间已结束",
     not_turn: "还不能落子", stale_move: "棋局已更新", occupied: "该点不能落子",
     connection_error: "连接失败，请重试", confirmLeave: "离开会结束这间房。确定离开？",
@@ -25,6 +25,7 @@ const strings = {
     pair_unavailable: "暂时无法连接配对服务，请稍后重试。",
     first: "先手", firstHost: "房主", firstGuest: "加入方", rule: "规则", size: "棋盘",
     allowUndo: "允许悔棋", undo: "悔棋", cannot_undo: "当前无法悔棋",
+    foulLoss: "黑棋下禁手直接判负", forbidden: "禁手，不能下这一步", showFouls: "显示禁手点",
     restart: "重新开始", rematchWait: "等待对手确认", rematchOffer: "对手请求再来一局",
   },
   en: {
@@ -35,7 +36,7 @@ const strings = {
     result: ["Draw", "Black wins", "White wins"], place: "Place", leave: "Leave room",
     leaving: "Leaving room…", on: "Sound on", off: "Sound off", rules: "Rules guide", board: "Gomoku board",
     freestyle: "Freestyle. Either side wins with five or more in a row.",
-    renjuRule: "Renju fouls. Black wins with exactly five. White wins with five or more. Black loses on double three, double four or overline unless the move also makes exactly five.",
+    renjuRule: "Black wins with exactly five. White wins with five or more. Double three, double four and overline are forbidden unless Black makes exactly five. The host chooses whether to block the move or count it as a loss.",
     wrong_code: "Wrong room code", room_full: "Room is full", room_closed: "Room closed",
     not_turn: "Cannot play now", stale_move: "Board updated", occupied: "Point unavailable",
     connection_error: "Connection failed. Try again", confirmLeave: "Leaving closes the room. Leave now?",
@@ -51,6 +52,7 @@ const strings = {
     pair_unavailable: "The pairing service is temporarily unavailable. Try again shortly.",
     first: "First move", firstHost: "Host", firstGuest: "Guest", rule: "Rules", size: "Board",
     allowUndo: "Allow undo", undo: "Undo", cannot_undo: "Cannot undo now",
+    foulLoss: "Black loses on a forbidden move", forbidden: "Forbidden move", showFouls: "Show forbidden points",
     restart: "Play again", rematchWait: "Waiting for your opponent", rematchOffer: "Your opponent wants a rematch",
   },
 };
@@ -121,7 +123,7 @@ async function poll() {
       clearSeat();
       mode = "";
       message = error.message;
-    } else if (["not_turn", "stale_move", "occupied", "cannot_undo"].includes(error.message)) {
+    } else if (["not_turn", "stale_move", "occupied", "cannot_undo", "forbidden"].includes(error.message)) {
       message = error.message;
     } else {
       disconnected = true;
@@ -157,7 +159,8 @@ async function enterRoom() {
   render();
   try {
     const options = {size: Number(byId("size").value), renju: byId("rule").value === "renju",
-      host_first: byId("first").value === "host", undo: byId("allow-undo").checked};
+      host_first: byId("first").value === "host", undo: byId("allow-undo").checked,
+      foul_loss: byId("foul-loss").checked};
     peer = new BrowserPeer(creating ? new PeerMatch(options) : null);
     const reply = creating ? await peer.host() : await peer.join(byId("code").value);
     seat = {color: reply.color, code: reply.code};
@@ -229,6 +232,8 @@ function rematch() {
 }
 
 byId("undo").onclick = () => { undo(); canvas.focus(); };
+byId("rule").onchange = render;
+byId("show-fouls").onchange = render;
 byId("rematch").onclick = () => { rematch(); canvas.focus(); };
 
 document.addEventListener("keydown", event => {
@@ -261,6 +266,25 @@ canvas.addEventListener("click", event => {
 function geometry() {
   const margin = 28;
   return {margin, step: (canvas.width - 2 * margin) / (state.size - 1)};
+}
+
+let foulMapKey = "";
+let foulMap = [];
+function forbiddenPoints() {
+  if (!state.renju || state.ended || state.turn !== 1 || !byId("show-fouls").checked) return [];
+  const key = JSON.stringify([state.size, state.moves]);
+  if (key === foulMapKey) return foulMap;
+  const game = new PeerGame(state.size, true);
+  state.moves.forEach((point, i) => game.board.set(String(point), 1 + i % 2));
+  foulMap = [];
+  for (let y = 0; y < state.size; y++) {
+    for (let x = 0; x < state.size; x++) {
+      const point = [x, y];
+      if (game.empty(point) && game.inspect(point, 1).foul) foulMap.push(point);
+    }
+  }
+  foulMapKey = key;
+  return foulMap;
 }
 
 function drawBoard() {
@@ -300,6 +324,15 @@ function drawBoard() {
     ctx.stroke();
   }
   if (state.moves.length) dot(state.moves[state.moves.length - 1], 4, state.foul ? "#e26047" : "#4db99d");
+  ctx.beginPath();
+  ctx.strokeStyle = "#a71f24";
+  ctx.lineWidth = 3;
+  for (const point of forbiddenPoints()) {
+    const [x, y] = pixel(point), r = step * .18;
+    ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r);
+    ctx.moveTo(x - r, y + r); ctx.lineTo(x + r, y - r);
+  }
+  ctx.stroke();
   if (!state.ended) {
     const [x,y] = pixel(cursor), r = radius + 4;
     ctx.beginPath();
@@ -323,7 +356,7 @@ function render() {
     "create-mode":"create", "join-mode":"join", back:"back", "code-label":"code", "peer-wait":"webWait",
     "first-label":"first", "first-host":"firstHost", "first-guest":"firstGuest",
     "rule-label":"rule", "rule-free":"free", "rule-renju":"renju", "size-label":"size",
-    "undo-label":"allowUndo", undo:"undo", rematch:"restart",
+    "undo-label":"allowUndo", "foul-loss-label":"foulLoss", "show-fouls-label":"showFouls", undo:"undo", rematch:"restart",
     leave:"leave", rules:"rules", "freestyle-rule":"freestyle", "renju-rule":"renjuRule",
   })) byId(id).textContent = t[key];
   byId("subtitle").textContent = seat && state ?
@@ -340,6 +373,8 @@ function render() {
   byId("room-info").hidden = !seat?.code || Boolean(state?.ready);
   byId("room-info").textContent = seat?.code ? `${t.code} ${seat.code}` : "";
   byId("peer-wait").hidden = !peer || !seat?.code || Boolean(state?.ready);
+  byId("renju-options").hidden = byId("rule").value !== "renju";
+  byId("show-fouls-option").hidden = !state?.renju;
   byId("undo").hidden = !state?.undo || state.ended;
   byId("undo").disabled = !canUndo();
   const votes = state?.ended && Array.isArray(state.rematch) ? state.rematch : null;

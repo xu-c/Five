@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.2.0-3_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.2.1-1_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.2.0-3_arm64.deb
+sudo apt install ./five_1.2.1-1_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -45,6 +45,11 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 | ![等待对手](screenshots/room-code-zh.png) | ![Waiting for opponent](screenshots/room-code-en.png) |
 
 ## 最近改动 / What's new
+
+**1.2.1-1**
+
+- 菜单操作加入音效，统一由「音效」开关控制。连珠禁手模式可实时标出禁手点（默认关闭），也可选择禁止落子（默认）或黑棋直接判负。
+- A single sound setting controls menu and move effects. Renju can mark forbidden points on Black's turn (off by default) and can either block a forbidden move (default) or count it as an immediate loss for Black.
 
 **1.2.0-3**
 
@@ -107,7 +112,7 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 - 人机执棋颜色在新局生效。选执白时由电脑执黑先手，悔棋最早可退到电脑的第一手之后。
 - 简单、普通、困难使用 Rapfi 的棋力参数 25、65、100，并分别限制搜索时间和深度。
 - 默认自由规则，黑白都无禁手，五连及以上获胜。
-- 连珠禁手中，黑棋恰好五连获胜，白棋五连或更长即胜。黑棋三三、四四或长连判白胜，同一步恰好五连时优先判黑胜。开局黑白轮流落子。可在设置中打开「规则说明」。
+- 连珠禁手中，黑棋恰好五连获胜，白棋五连或更长即胜。黑棋三三、四四或长连是禁手，同一步恰好五连时优先判黑胜。可以在设置中显示禁手点。离线对局由设置决定如何处理禁手，联机对局由房主决定。
 - 旧版仅启用部分禁手的人机棋局可以按原规则以同机双人方式续下。
 - 界面支持简体中文和英文，默认简体中文。
 - 落子音效默认开启，可在设置中关闭。人机和双人对局共用这一设置。
@@ -131,7 +136,9 @@ Windows 上的 ARM64 打包使用 `build_rapfi.ps1`。桌面预览的人机模�
 
 Five 用标准 Gomocup 文本协议与独立的 Rapfi 进程通信。Rapfi 引擎按 GPL-3.0-or-later 分发，官方经典模型权重采用 CC0-1.0。安装包的 `/usr/share/doc/five/` 包含许可证文本、精确对应的 Rapfi 源码和构建脚本。引擎提交为 `1387d11312190ec66665d361ff07a7c70221b78a`，权重提交为 `7eeb19b55219a48138756293f92211a1539bab4d`。
 
-Five 自有应用部分采用专有许可。Rapfi 和模型权重按各自许可证分发。屏幕适配代码和 Debian 打包脚本沿用了 WebRadio 的部分实现。Pillow、python-evdev 和 Noto CJK 字体通过系统软件包安装。
+Five 自有代码与项目资源采用 **GPL-3.0-or-later**，全文见 [LICENSE](LICENSE)。屏幕适配代码和 Debian 打包脚本沿用了 WebRadio 的部分实现。Pillow、python-evdev 和 Noto CJK 字体通过系统软件包安装。
+
+Five's own source and assets are licensed under **GPL-3.0-or-later**. The bundled Rapfi executable is licensed under GPL-3.0-or-later, and its model weights are licensed under CC0-1.0. The package includes Rapfi's corresponding source and build script.
 
 - [Rapfi 引擎许可证](https://github.com/dotb1ue/rapfi/blob/master/Copying.txt)
 - [Rapfi 官方权重](https://github.com/dotb1ue/rapfi-networks)
