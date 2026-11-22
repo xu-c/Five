@@ -17,6 +17,7 @@ WOOD, GRID = "#d8af75", "#78542f"
 PREVIEW_MOVES = ((2, 6), (3, 6), (3, 5), (4, 5), (4, 4), (5, 4), (5, 3), (4, 3), (6, 2))
 
 LABELS = {
+    "game_title": ("五子棋", "Gomoku"),
     "lan": ("局域网联机", "LAN play"),
     "lan_host": ("创建房间", "Host room"),
     "lan_first": ("先手", "First move"),
@@ -229,7 +230,7 @@ class Screen:
                   None if game.ended else cursor, last, game.result.line,
                   bool(game.result.foul), gameplay=True,
                   forbidden=game.forbidden_points() if app.settings.show_fouls else ())
-            text(177, 10, TITLE, 21)
+            text(177, 10, tr("game_title"), 21)
             subtitle = (tr("lan") + "  ·  " + tr("play_black" if session.color == BLACK else "play_white")
                         if session else tr(app.mode) + "  ·  " +
                         (tr(app.level) if app.mode == "cpu" else tr(game.size)))
@@ -333,7 +334,7 @@ class Screen:
             return image
 
         if app.page == "home":
-            text(14, 10, TITLE, 23)
+            text(14, 10, tr("game_title"), 23)
             board(draw, (190, 15, 305, 129), 9,
                   {point: 1 + index % 2 for index, point in enumerate(PREVIEW_MOVES)},
                   last=PREVIEW_MOVES[-1])

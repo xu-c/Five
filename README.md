@@ -4,10 +4,10 @@
 
 ## 安装
 
-将 `dist/five_1.2.1-1_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
+将 `dist/five_1.2.1-2_arm64.deb` 复制到 Cardputer Zero，在设备上运行：
 
 ```sh
-sudo apt install ./five_1.2.1-1_arm64.deb
+sudo apt install ./five_1.2.1-2_arm64.deb
 ```
 
 安装后从应用启动器打开 **Five**。
@@ -45,6 +45,11 @@ Play Gomoku against Rapfi at three difficulty levels, take turns on one Cardpute
 | ![等待对手](screenshots/room-code-zh.png) | ![Waiting for opponent](screenshots/room-code-en.png) |
 
 ## 最近改动 / What's new
+
+**1.2.1-2**
+
+- 主菜单和对局标题随界面语言显示「五子棋」或「Gomoku」。商店应用名仍为 Five。
+- The main menu and game titles follow the interface language, showing 五子棋 in Chinese and Gomoku in English. The store name remains Five.
 
 **1.2.1-1**
 
